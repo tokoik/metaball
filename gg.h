@@ -3851,7 +3851,7 @@ namespace gg
       GgBuffer<T>::load(GL_UNIFORM_BUFFER, nullptr, count, usage);
 
       // ユニフォームバッファオブジェクトではブロックごとに転送する
-      for (GLuint i = 0; i < count; ++i)
+      for (GLsizeiptr i = 0; i < count; ++i)
       {
         glBufferSubData(GgBuffer<T>::getTarget(),
           GgBuffer<T>::getSize(i), GgBuffer<T>::getSize(1), data + i);
@@ -3866,7 +3866,7 @@ namespace gg
     {
       // ユニフォームバッファオブジェクトではブロックごとに転送する
       GgBuffer<T>::bind();
-      for (GLuint i = 0; i < count; ++i)
+      for (GLsizeiptr i = 0; i < count; ++i)
       {
         glBufferSubData(GgBuffer<T>::getTarget(),
           GgBuffer<T>::getSize(offset + i), GgBuffer<T>::getSize(1), data + i);
@@ -3886,7 +3886,7 @@ namespace gg
       // ユニフォームバッファオブジェクトではブロックごとに転送する
       glBindBuffer(GL_COPY_READ_BUFFER, buffer);
       glBindBuffer(GL_COPY_WRITE_BUFFER, this->getBuffer());
-      for (GLuint i = 0; i < count; ++i)
+      for (GLsizeiptr i = 0; i < count; ++i)
       {
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
           this->getSize(src_offset + i), this->getSize(dst_offset + i), this->getSize(1));

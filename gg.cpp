@@ -4800,7 +4800,7 @@ gg::GgPoints *gg::ggPointsCube(GLsizeiptr nv, GLfloat length, GLfloat cx, GLfloa
   pos.reserve(nv);
 
   // 点を生成する
-  for (GLuint v = 0; v < nv; ++v)
+  for (GLsizeiptr v = 0; v < nv; ++v)
   {
     const GgVector p =
     {
@@ -4831,7 +4831,7 @@ gg::GgPoints *gg::ggPointsSphere(GLsizeiptr nv, GLfloat radius,
   pos.reserve(nv);
 
   // 点を生成する
-  for (GLuint v = 0; v < nv; ++v)
+  for (GLsizeiptr v = 0; v < nv; ++v)
   {
     const float r(radius * static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
     const float t(6.2831853f * static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) + 1.0f));
@@ -5082,7 +5082,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(GLfloat r, GLfloat g, GLflo
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleMaterial *material(reinterpret_cast<GgSimpleMaterial *>(start + getSize(i)));
@@ -5136,7 +5136,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(GLfloat r, GLfloat g, GLflo
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleMaterial *material(reinterpret_cast<GgSimpleMaterial *>(start + getSize(i)));
@@ -5168,7 +5168,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(const GLfloat *diffuse,
   const size_t size(pointer->diffuse.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの diffuse 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->diffuse, diffuse + i * size);
@@ -5190,7 +5190,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(GLfloat r, GLfloat g, GLfl
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleMaterial *material(reinterpret_cast<GgSimpleMaterial *>(start + getSize(i)));
@@ -5222,7 +5222,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(const GLfloat *specular,
   const size_t size(pointer->specular.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの specular 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->specular, specular + i * size);
@@ -5241,7 +5241,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialShininess(GLfloat shininess,
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleMaterial *material(reinterpret_cast<GgSimpleMaterial *>(start + getSize(i)));
@@ -5262,7 +5262,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialShininess(const GLfloat *shininess,
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleMaterial *material(reinterpret_cast<GgSimpleMaterial *>(start + getSize(i)));
@@ -5288,7 +5288,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterial(const GgSimpleMaterial *material,
   const GLsizeiptr offset(reinterpret_cast<GLintptr>(pointer + first));
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックに値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof *material, material + i);
@@ -5310,7 +5310,7 @@ void gg::GgSimpleLightBuffer::loadLightAmbient(GLfloat r, GLfloat g, GLfloat b, 
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleLight *light(reinterpret_cast<GgSimpleLight *>(start + getSize(i)));
@@ -5342,7 +5342,7 @@ void gg::GgSimpleLightBuffer::loadLightAmbient(const GLfloat *ambient,
   const size_t size(pointer->ambient.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの ambient 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->ambient, ambient + i * size);
@@ -5364,7 +5364,7 @@ void gg::GgSimpleLightBuffer::loadLightDiffuse(GLfloat r, GLfloat g, GLfloat b, 
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleLight *light(reinterpret_cast<GgSimpleLight *>(start + getSize(i)));
@@ -5396,7 +5396,7 @@ void gg::GgSimpleLightBuffer::loadLightDiffuse(const GLfloat *diffuse,
   const size_t size(pointer->diffuse.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの ambient 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->diffuse, diffuse + i * size);
@@ -5418,7 +5418,7 @@ void gg::GgSimpleLightBuffer::loadLightSpecular(GLfloat r, GLfloat g, GLfloat b,
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleLight *light(reinterpret_cast<GgSimpleLight *>(start + getSize(i)));
@@ -5450,7 +5450,7 @@ void gg::GgSimpleLightBuffer::loadLightSpecular(const GLfloat *specular,
   const size_t size(pointer->specular.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの ambient 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->specular, specular + i * size);
@@ -5469,7 +5469,7 @@ void gg::GgSimpleLightBuffer::loadLightMaterial(const GgSimpleLight &material,
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleLight *light(reinterpret_cast<GgSimpleLight *>(start + getSize(i)));
@@ -5495,7 +5495,7 @@ void gg::GgSimpleLightBuffer::loadLightPosition(GLfloat x, GLfloat y, GLfloat z,
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // バッファオブジェクトの i 番目のブロックのポインタ
     GgSimpleLight *light(reinterpret_cast<GgSimpleLight *>(start + getSize(i)));
@@ -5527,7 +5527,7 @@ void gg::GgSimpleLightBuffer::loadLightPosition(const GLfloat *position,
   const size_t size(pointer->position.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの ambient 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->position, position + i * size);
@@ -5551,7 +5551,7 @@ void gg::GgSimpleLightBuffer::loadLight(const GgSimpleLight *light,
   const GLsizeiptr offset(reinterpret_cast<GLintptr>(pointer + first));
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックに値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof *light, light + i);
@@ -5610,7 +5610,7 @@ void gg::GgObj::draw(GLuint first, GLsizeiptr count) const
   GLsizeiptr last(count <= static_cast<GLsizeiptr>(0) ? ng : first + count);
   if (last > ng) last = ng;
 
-  for (GLuint g = first; g < last; ++g)
+  for (GLsizeiptr g = first; g < last; ++g)
   {
     // 材質を設定する
     if (shader) shader->selectMaterial(material, group[g][2]);
