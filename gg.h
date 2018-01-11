@@ -3634,7 +3634,7 @@ namespace gg
     GLuint buffer;
 
     // データ数
-    GLuint count;
+    GLsizeiptr count;
 
     // バッファオブジェクトのアライメントを考慮したブロックサイズ
     const GLsizeiptr blocksize;
@@ -3664,7 +3664,7 @@ namespace gg
     //!   \param data データが格納されている領域の先頭のポインタ (nullptr ならデータを転送しない).
     //!   \param count データの数.
     //!   \param usage バッファオブジェクトの使い方.
-    GgBuffer<T>(GLenum target, const T *data, GLuint count, GLenum usage = GL_STATIC_DRAW)
+    GgBuffer<T>(GLenum target, const T *data, GLsizeiptr count, GLenum usage = GL_STATIC_DRAW)
       : GgBuffer<T>()
     {
       load(target, data, count, usage);
@@ -3712,7 +3712,7 @@ namespace gg
     //!   \param offset マップする範囲のバッファオブジェクトの先頭からの位置.
     //!   \param count マップするデータの数.
     //!   \return マップしたメモリの先頭のポインタ.
-    void *map(GLuint offset, GLuint count) const
+    void *map(GLuint offset, GLsizeiptr count) const
     {
       bind();
       return glMapBufferRange(target, getSize(offset), getSize(count), GL_WRITE_ONLY);
@@ -3740,7 +3740,7 @@ namespace gg
 
     //! \brief バッファオブジェクトが保持するデータの数を取り出す.
     //!   \return 保持するデータの数.
-    GLuint getCount() const
+    GLsizeiptr getCount() const
     {
       return count;
     }
@@ -3748,7 +3748,7 @@ namespace gg
     //! \brief バッファオブジェクトのブロック count 個分のサイズを求める.
     //!   \param count ブロックの個数.
     //!   \return ブロックの個数分のサイズ.
-    GLsizeiptr getSize(int count = 1) const
+    GLsizeiptr getSize(GLsizeiptr count = 1) const
     {
       return blocksize * count;
     }
@@ -3758,7 +3758,7 @@ namespace gg
     //!   \param data データが格納されている領域の先頭のポインタ.
     //!   \param count データの数.
     //!   \param usage バッファオブジェクトの使い方.
-    virtual void load(GLenum target, const T *data, GLuint count = 1, GLenum usage = GL_STATIC_DRAW)
+    virtual void load(GLenum target, const T *data, GLsizeiptr count = 1, GLenum usage = GL_STATIC_DRAW)
     {
       // バッファオブジェクトのターゲットとデータの数
       this->target = target;
@@ -3773,7 +3773,7 @@ namespace gg
     //!   \param data 転送元のデータが格納されてている領域の先頭のポインタ.
     //!   \param count 転送するデータの数 (0 ならバッファ全体).
     //!   \param offset 転送先のバッファオブジェクトの先頭の要素番号.
-    virtual void send(const T *data, GLuint count = 0, GLuint offset = 0) const
+    virtual void send(const T *data, GLsizeiptr count = 0, GLuint offset = 0) const
     {
       // count が 0 なら全データを転送する
       if (count == 0) count = this->count;
@@ -3788,7 +3788,7 @@ namespace gg
     //!   \param count 複写するデータの数 (0 ならバッファ全体).
     //!   \param src_offset 複写元 (buffer) の先頭のデータの位置.
     //!   \param dst_offset 複写先 (this->buffer) の先頭のデータの位置.
-    virtual void copy(GLuint buffer, GLuint count = 0, GLuint src_offset = 0, GLuint dst_offset = 0) const
+    virtual void copy(GLuint buffer, GLsizeiptr count = 0, GLuint src_offset = 0, GLuint dst_offset = 0) const
     {
       // count が 0 なら全データを複写する
       if (count == 0) count = this->count;
@@ -3824,7 +3824,7 @@ namespace gg
     //!   \param data データが格納されている領域の先頭のポインタ (nullptr ならデータを転送しない).
     //!   \param count データの数.
     //!   \param usage バッファオブジェクトの使い方.
-    GgUniformBuffer<T>(const T *data, GLuint count, GLenum usage = GL_STATIC_DRAW)
+    GgUniformBuffer<T>(const T *data, GLsizeiptr count, GLenum usage = GL_STATIC_DRAW)
       : GgUniformBuffer<T>()
     {
       load(data, count, usage);
@@ -3845,7 +3845,7 @@ namespace gg
     //!   \param data データが格納されている領域の先頭のポインタ.
     //!   \param count データの数.
     //!   \param usage バッファオブジェクトの使い方.
-    virtual void load(const T *data, GLuint count = 1, GLenum usage = GL_STATIC_DRAW)
+    virtual void load(const T *data, GLsizeiptr count = 1, GLenum usage = GL_STATIC_DRAW)
     {
       // ユニフォームバッファオブジェクトのメモリを確保する
       GgBuffer<T>::load(GL_UNIFORM_BUFFER, nullptr, count, usage);
@@ -3862,7 +3862,7 @@ namespace gg
     //!   \param data 転送元のデータが格納されてている領域の先頭のポインタ.
     //!   \param count 転送するデータの数 (0 ならバッファ全体).
     //!   \param offset 転送先のバッファオブジェクトの先頭の要素番号.
-    virtual void send(const T *data, GLuint count, GLuint offset = 0) const
+    virtual void send(const T *data, GLsizeiptr count, GLuint offset = 0) const
     {
       // ユニフォームバッファオブジェクトではブロックごとに転送する
       GgBuffer<T>::bind();
@@ -3878,7 +3878,7 @@ namespace gg
     //!   \param count 複写するデータの数 (0 ならバッファ全体).
     //!   \param src_offset 複写元 (buffer) の先頭のデータの位置.
     //!   \param dst_offset 複写先 (this->buffer) の先頭のデータの位置.
-    virtual void copy(GLuint buffer, GLuint count = 0, GLuint src_offset = 0, GLuint dst_offset = 0) const
+    virtual void copy(GLuint buffer, GLsizeiptr count = 0, GLuint src_offset = 0, GLuint dst_offset = 0) const
     {
       // count が 0 なら全データを複写する
       if (count == 0) count = this->getCount();
@@ -3971,7 +3971,7 @@ namespace gg
     //! \brief 図形の描画, 派生クラスでこの手続きをオーバーライドする.
     //!   \param first 描画する最初のアイテム.
     //!   \param count 描画するアイテムの数, 0 なら全部のアイテムを描画する.
-    virtual void draw(GLint first = 0, GLsizei count = 0) const
+    virtual void draw(GLint first = 0, GLsizeiptr count = 0) const
     {
       glBindVertexArray(vao);
     }
@@ -4000,7 +4000,7 @@ namespace gg
     //!   \param nv 頂点数.
     //!   \param mode 描画する基本図形の種類.
     //!   \param usage バッファオブジェクトの使い方.
-    GgPoints(const GgVector *pos, GLuint nv, GLenum mode = GL_POINTS, GLenum usage = GL_STATIC_DRAW)
+    GgPoints(const GgVector *pos, GLsizeiptr nv, GLenum mode = GL_POINTS, GLenum usage = GL_STATIC_DRAW)
       : GgShape(mode)
     {
       load(pos, nv, usage);
@@ -4031,7 +4031,7 @@ namespace gg
 
     //! \brief データの数を取り出す.
     //!   \return この図形の頂点の位置データの数 (頂点数).
-    GLuint getCount() const
+    GLsizeiptr getCount() const
     {
       return position.getCount();
     }
@@ -4040,7 +4040,7 @@ namespace gg
     //!   \param pos 頂点の位置データが格納されてている領域の先頭のポインタ.
     //!   \param nv 頂点のデータの数 (頂点数).
     //!   \param usage バッファオブジェクトの使い方.
-    void load(const GgVector *pos, GLuint nv, GLenum usage = GL_STATIC_DRAW)
+    void load(const GgVector *pos, GLsizeiptr nv, GLenum usage = GL_STATIC_DRAW)
     {
       // 頂点位置
       position.load(GL_ARRAY_BUFFER, pos, nv, usage);
@@ -4055,7 +4055,7 @@ namespace gg
     //!   \param pos 転送元の頂点の位置データが格納されてている領域の先頭のポインタ.
     //!   \param nv 転送する頂点の位置データの数 (0 ならバッファ全体).
     //!   \param offset 転送先のバッファオブジェクトの先頭の要素番号.
-    void send(const GgVector *pos, GLuint nv, GLuint offset = 0) const
+    void send(const GgVector *pos, GLsizeiptr nv, GLuint offset = 0) const
     {
       position.send(pos, nv, offset);
     }
@@ -4063,7 +4063,7 @@ namespace gg
     //! \brief 点の描画.
     //!   \param first 描画を開始する最初の点の番号.
     //!   \param count 描画する点の数, 0 なら全部の点を描く.
-    virtual void draw(GLint first = 0, GLsizei count = 0) const;
+    virtual void draw(GLint first = 0, GLsizeiptr count = 0) const;
   };
 
   /*!
@@ -4124,7 +4124,7 @@ namespace gg
     //!   \param nv 頂点数.
     //!   \param mode 描画する基本図形の種類.
     //!   \param usage バッファオブジェクトの使い方.
-    GgTriangles(const GgVertex *vert, GLuint nv,
+    GgTriangles(const GgVertex *vert, GLsizeiptr nv,
       GLenum mode = GL_TRIANGLES, GLenum usage = GL_STATIC_DRAW)
       : GgShape(mode)
     {
@@ -4156,7 +4156,7 @@ namespace gg
 
     //! \brief データの数を取り出す.
     //!   \return この図形の頂点属性の数 (頂点数).
-    GLuint getCount() const
+    GLsizeiptr getCount() const
     {
       return vertex.getCount();
     }
@@ -4165,7 +4165,7 @@ namespace gg
     //!   \param vert 頂点属性が格納されてている領域の先頭のポインタ.
     //!   \param nv 頂点のデータの数 (頂点数).
     //!   \param usage バッファオブジェクトの使い方.
-    void load(const GgVertex *vert, GLuint nv, GLenum usage = GL_STATIC_DRAW)
+    void load(const GgVertex *vert, GLsizeiptr nv, GLenum usage = GL_STATIC_DRAW)
     {
       // 頂点属性
       vertex.load(GL_ARRAY_BUFFER, vert, nv, usage);
@@ -4185,7 +4185,7 @@ namespace gg
     //!   \param vert 転送元の頂点属性が格納されてている領域の先頭のポインタ.
     //!   \param nv 転送する頂点の位置データの数 (0 ならバッファ全体).
     //!   \param offset 転送先のバッファオブジェクトの先頭の要素番号.
-    void send(const GgVertex *vert, GLuint nv, GLuint offset = 0) const
+    void send(const GgVertex *vert, GLsizeiptr nv, GLuint offset = 0) const
     {
       vertex.send(vert, nv, offset);
     }
@@ -4193,7 +4193,7 @@ namespace gg
     //! \brief 三角形の描画.
     //!   \param first 描画を開始する最初の三角形番号.
     //!   \param count 描画する三角形数, 0 なら全部の三角形を描く.
-    virtual void draw(GLint first = 0, GLsizei count = 0) const;
+    virtual void draw(GLint first = 0, GLsizeiptr count = 0) const;
   };
 
   /*!
@@ -4222,7 +4222,7 @@ namespace gg
     //!   \param nf 三角形の頂点数.
     //!   \param mode 描画する基本図形の種類.
     //!   \param usage バッファオブジェクトの使い方.
-    GgElements(const GgVertex *vert, GLuint nv, const GLuint *face, GLuint nf,
+    GgElements(const GgVertex *vert, GLsizeiptr nv, const GLuint *face, GLsizeiptr nf,
       GLenum mode = GL_TRIANGLES, GLenum usage = GL_STATIC_DRAW)
       : GgTriangles(vert, nv, mode, usage)
     {
@@ -4251,7 +4251,7 @@ namespace gg
     //!   \param face 三角形の頂点インデックスデータ.
     //!   \param nf 三角形の頂点数.
     //!   \param usage バッファオブジェクトの使い方.
-    void load(const GgVertex *vert, GLuint nv, const GLuint *face, GLuint nf,
+    void load(const GgVertex *vert, GLsizeiptr nv, const GLuint *face, GLsizeiptr nf,
       GLenum usage = GL_STATIC_DRAW)
     {
       GgTriangles::load(vert, nv, usage);
@@ -4265,8 +4265,8 @@ namespace gg
     //!   \param face 三角形の頂点インデックスデータ.
     //!   \param nf 三角形の頂点数.
     //!   \param foffset インデックスの転送先のバッファオブジェクトの先頭の要素番号.
-    void send(const GgVertex *vert, GLuint nv, GLuint voffset = 0,
-      const GLuint *face = nullptr, GLuint nf = 0, GLuint foffset = 0) const
+    void send(const GgVertex *vert, GLsizeiptr nv, GLuint voffset = 0,
+      const GLuint *face = nullptr, GLsizeiptr nf = 0, GLuint foffset = 0) const
     {
       GgTriangles::send(vert, nv, voffset);
       if (face != nullptr && nf > 0) index.send(face, nf, foffset);
@@ -4281,7 +4281,7 @@ namespace gg
 
     //! \brief データの数を取り出す.
     //!   \return この図形の三角形数.
-    GLuint getIndexCount() const
+    GLsizeiptr getIndexCount() const
     {
       return index.getCount();
     }
@@ -4289,7 +4289,7 @@ namespace gg
     //! \brief インデックスを使った三角形の描画.
     //!   \param first 描画を開始する最初の三角形番号.
     //!   \param count 描画する三角形数, 0 なら全部の三角形を描く.
-    virtual void draw(GLint first = 0, GLsizei count = 0) const;
+    virtual void draw(GLint first = 0, GLsizeiptr count = 0) const;
   };
 
   /*!
@@ -4301,7 +4301,7 @@ namespace gg
   **    \param cy 点群の中心の y 座標.
   **    \param cz 点群の中心の z 座標.
   */
-  extern GgPoints *ggPointsCube(GLuint nv, GLfloat length = 1.0f,
+  extern GgPoints *ggPointsCube(GLsizeiptr nv, GLfloat length = 1.0f,
     GLfloat cx = 0.0f, GLfloat cy = 0.0f, GLfloat cz = 0.0f);
 
   /*!
@@ -4313,7 +4313,7 @@ namespace gg
   **   \param cy 点群の中心の y 座標.
   **   \param cz 点群の中心の z 座標.
   */
-  extern GgPoints *ggPointsSphere(GLuint nv, GLfloat radius = 0.5f,
+  extern GgPoints *ggPointsSphere(GLsizeiptr nv, GLfloat radius = 0.5f,
     GLfloat cx = 0.0f, GLfloat cy = 0.0f, GLfloat cz = 0.0f);
 
   /*!
@@ -4580,7 +4580,7 @@ namespace gg
     //! \brief コンストラクタ.
     //!   \param light GgSimpleLight 型の光源データのポインタ.
     //!   \param count バッファ中の GgSimpleLight 型の光源データの数.
-    GgSimpleLightBuffer(const GgSimpleLight *light = nullptr, GLuint count = 1)
+    GgSimpleLightBuffer(const GgSimpleLight *light = nullptr, GLsizeiptr count = 1)
       : GgUniformBuffer<GgSimpleLight>(light, count) {}
 
     //! \brief コンストラクタ.
@@ -4594,13 +4594,13 @@ namespace gg
     //!   \param b 光源の強度の環境光成分の青成分.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadLightAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の強度の環境光成分を設定する.
     //!   \param ambient 光源の強度の環境光成分を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightAmbient(const GLfloat *ambient, GLuint first = 0, GLuint count = 1) const;
+    void loadLightAmbient(const GLfloat *ambient, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の強度の拡散反射光成分を設定する.
     //!   \param r 光源の強度の拡散反射光成分の赤成分.
@@ -4609,13 +4609,13 @@ namespace gg
     //!   \param a 光源の強度の拡散反射光成分の不透明度, デフォルトは 1.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadLightDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の強度の拡散反射光成分を設定する.
     //!   \param diffuse 光源の強度の拡散反射光成分を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightDiffuse(const GLfloat *diffuse, GLuint first = 0, GLuint count = 1) const;
+    void loadLightDiffuse(const GLfloat *diffuse, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の強度の鏡面反射光成分を設定する.
     //!   \param r 光源の強度の鏡面反射光成分の赤成分.
@@ -4624,19 +4624,19 @@ namespace gg
     //!   \param a 光源の強度の鏡面反射光成分の不透明度, デフォルトは 1.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadLightSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の強度の鏡面反射光成分を設定する.
     //!   \param specular 光源の強度の鏡面反射光成分を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightSpecular(const GLfloat *specular, GLuint first = 0, GLuint count = 1) const;
+    void loadLightSpecular(const GLfloat *specular, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の色を設定するが位置は変更しない.
     //!   \param material 光源の特性の gg::GgSimpleLight 構造体.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightMaterial(const GgSimpleLight &material, GLuint first = 0, GLuint count = 1) const;
+    void loadLightMaterial(const GgSimpleLight &material, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の位置を設定する.
     //!   \param x 光源の位置の x 座標.
@@ -4645,25 +4645,25 @@ namespace gg
     //!   \param w 光源の位置の w 座標, デフォルトは 1.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightPosition(GLfloat x, GLfloat y, GLfloat z, GLfloat w = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadLightPosition(GLfloat x, GLfloat y, GLfloat z, GLfloat w = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の位置を設定する.
     //!   \param position 光源の位置の同次座標を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLightPosition(const GLfloat *position, GLuint first = 0, GLuint count = 1) const;
+    void loadLightPosition(const GLfloat *position, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の色と位置を設定する.
     //!   \param light 光源の特性の gg::GgSimpleLight 構造体のポインタ
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLight(const GgSimpleLight *light, GLuint first = 0, GLuint count = 1) const;
+    void loadLight(const GgSimpleLight *light, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 光源の色と位置を設定する.
     //!   \param light 光源の特性の gg::GgSimpleLight 構造体
     //!   \param first 値を設定する光源データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する光源データの数, デフォルトは 1.
-    void loadLight(const GgSimpleLight &light, GLuint first = 0, GLuint count = 1) const
+    void loadLight(const GgSimpleLight &light, GLuint first = 0, GLsizeiptr count = 1) const
     {
       loadLight(&light, first, count);
     }
@@ -4694,7 +4694,7 @@ namespace gg
     //! \brief  コンストラクタ
     //!   \param material GgSimpleMaterial 型の材質データのポインタ.
     //!   \param count バッファ中の GgSimpleMaterial 型の材質データの数.
-    GgSimpleMaterialBuffer(const GgSimpleMaterial *material = nullptr, GLuint count = 1)
+    GgSimpleMaterialBuffer(const GgSimpleMaterial *material = nullptr, GLsizeiptr count = 1)
       : GgUniformBuffer<GgSimpleMaterial>(material, count) {}
 
     //! \brief  コンストラクタ
@@ -4709,11 +4709,11 @@ namespace gg
     //!   \param a 環境光に対する反射係数の不透明度, デフォルトは 1.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 環境光に対する反射係数を設定する.
     //!   \param ambient 環境光に対する反射係数を格納した GLfloat 型の 4 要素の配列.
-    void loadMaterialAmbient(const GLfloat *ambient, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialAmbient(const GLfloat *ambient, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 拡散反射係数を設定する.
     //!   \param r 拡散反射係数の赤成分.
@@ -4722,13 +4722,13 @@ namespace gg
     //!   \param a 拡散反射係数の不透明度, デフォルトは 1.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 拡散反射係数を設定する.
     //!   \param diffuse 拡散反射係数を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialDiffuse(const GLfloat *diffuse, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialDiffuse(const GLfloat *diffuse, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 鏡面反射係数を設定する.
     //!   \param r 鏡面反射係数の赤成分.
@@ -4737,37 +4737,37 @@ namespace gg
     //!   \param a 鏡面反射係数の不透明度, デフォルトは 1.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 鏡面反射係数を設定する.
     //!   \param specular 鏡面反射係数を格納した GLfloat 型の 4 要素の配列.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialSpecular(const GLfloat *specular, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialSpecular(const GLfloat *specular, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 輝き係数を設定する.
     //!   \param shininess 輝き係数.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialShininess(GLfloat shininess, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialShininess(GLfloat shininess, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 輝き係数を設定する.
     //!   \param shininess 輝き係数.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterialShininess(const GLfloat *shininess, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterialShininess(const GLfloat *shininess, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 材質を設定する.
     //!   \param material 光源の特性の gg::GgSimpleMaterial 構造体のポインタ.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterial(const GgSimpleMaterial *material, GLuint first = 0, GLuint count = 1) const;
+    void loadMaterial(const GgSimpleMaterial *material, GLuint first = 0, GLsizeiptr count = 1) const;
 
     //! \brief 材質を設定する.
     //!   \param material 光源の特性の gg::GgSimpleMaterial 構造体.
     //!   \param first 値を設定する材質データの最初の番号, デフォルトは 0.
     //!   \param count 値を設定する材質データの数, デフォルトは 1.
-    void loadMaterial(const GgSimpleMaterial &material, GLuint first = 0, GLuint count = 1) const
+    void loadMaterial(const GgSimpleMaterial &material, GLuint first = 0, GLsizeiptr count = 1) const
     {
       loadMaterial(&material, first, count);
     }
@@ -5061,6 +5061,6 @@ namespace gg
     //! \brief Wavefront OBJ 形式のデータを描画する手続き.
     //!   \param first 描画する最初のパーツ番号.
     //!   \param count 描画するパーツの数, 0 なら全部のパーツを描く.
-    virtual void draw(GLuint first = 0, GLsizei count = 0) const;
+    virtual void draw(GLuint first = 0, GLsizeiptr count = 0) const;
   };
 }

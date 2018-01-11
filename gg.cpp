@@ -3278,7 +3278,7 @@ namespace gg
     }
 
     // ポリゴングループの最初の三角形番号
-    GLuint startgroup(static_cast<GLuint>(group.size()));
+    GLsizei startgroup(static_cast<GLsizei>(group.size()));
 
     // スムーズシェーディングのスイッチ
     bool smooth(false);
@@ -3410,7 +3410,7 @@ namespace gg
       else if (op == "usemtl")
       {
         // 次のポリゴングループの最初の三角形番号
-        const GLuint nextgroup(static_cast<GLuint>(face.size()));
+        const GLsizei nextgroup(static_cast<GLsizei>(face.size()));
 
         // ポリゴングループに三角形が存在すれば
         if (nextgroup > startgroup)
@@ -3461,11 +3461,11 @@ namespace gg
     file.close();
 
     // 最後のポリゴングループの次の三角形番号
-    const GLuint nextgroup(static_cast<GLuint>(face.size()));
+    const GLsizei nextgroup(static_cast<GLsizei>(face.size()));
     if (nextgroup > startgroup)
     {
       // 最後のポリゴングループの三角形数と材質を記録する
-      group.emplace_back(nextgroup, mtl[mtlname]);
+      group.emplace_back(nextgroup, static_cast<GLuint>(mtl[mtlname]));
     }
 
     // スムーズシェーディングしない三角形の頂点を追加する
@@ -4756,44 +4756,44 @@ void gg::GgTrackball::stop(float x, float y)
 /*
 ** 点：描画
 */
-void gg::GgPoints::draw(GLint first, GLsizei count) const
+void gg::GgPoints::draw(GLint first, GLsizeiptr count) const
 {
   // 頂点配列オブジェクトを指定する
   GgShape::draw(first, count);
 
   // 図形を描画する
-  glDrawArrays(getMode(), first, count > 0 ? count : getCount() - first);
+  glDrawArrays(getMode(), first, static_cast<GLsizei>(count > 0 ? count : getCount() - first));
 }
 
 /*
 ** 三角形：描画
 */
-void gg::GgTriangles::draw(GLint first, GLsizei count) const
+void gg::GgTriangles::draw(GLint first, GLsizeiptr count) const
 {
   // 頂点配列オブジェクトを指定する
   GgShape::draw(first, count);
 
   // 図形を描画する
-  glDrawArrays(getMode(), first, count > 0 ? count : getCount() - first);
+  glDrawArrays(getMode(), first, static_cast<GLsizei>(count > 0 ? count : getCount() - first));
 }
 
 /*
 ** オブジェクト：描画
 */
-void gg::GgElements::draw(GLint first, GLsizei count) const
+void gg::GgElements::draw(GLint first, GLsizeiptr count) const
 {
   // 頂点配列オブジェクトを指定する
   GgShape::draw(first, count);
 
   // 図形を描画する
-  glDrawElements(getMode(), count > 0 ? count : getIndexCount() - first,
+  glDrawElements(getMode(), static_cast<GLsizei>(count > 0 ? count : getIndexCount() - first),
     GL_UNSIGNED_INT, static_cast<GLuint *>(0) + first);
 }
 
 /*
 ** 点群を立方体状に生成する
 */
-gg::GgPoints *gg::ggPointsCube(GLuint nv, GLfloat length, GLfloat cx, GLfloat cy, GLfloat cz)
+gg::GgPoints *gg::ggPointsCube(GLsizeiptr nv, GLfloat length, GLfloat cx, GLfloat cy, GLfloat cz)
 {
   // メモリを確保する
   std::vector<GgVector> pos;
@@ -4823,7 +4823,7 @@ gg::GgPoints *gg::ggPointsCube(GLuint nv, GLfloat length, GLfloat cx, GLfloat cy
 /*
 ** 点群を球状に生成する
 */
-gg::GgPoints *gg::ggPointsSphere(GLuint nv, GLfloat radius,
+gg::GgPoints *gg::ggPointsSphere(GLsizeiptr nv, GLfloat radius,
   GLfloat cx, GLfloat cy, GLfloat cz)
 {
   // メモリを確保する
@@ -4846,7 +4846,7 @@ gg::GgPoints *gg::ggPointsSphere(GLuint nv, GLfloat radius,
   }
 
   // 点データの GgPoints オブジェクトを作成する
-  GgPoints *const points(new GgPoints(pos.data(), static_cast<GLuint>(pos.size()), GL_POINTS));
+  GgPoints *const points(new GgPoints(pos.data(), pos.size(), GL_POINTS));
 
   // GgPoints オブジェクトを返す
   return points;
@@ -4870,7 +4870,7 @@ gg::GgTriangles *gg::ggRectangle(GLfloat width, GLfloat height)
   }
 
   // 矩形の GgTrianges オブジェクトを作成する
-  return new GgTriangles(vert.data(), static_cast<GLint>(vert.size()), GL_TRIANGLE_STRIP);
+  return new GgTriangles(vert.data(), vert.size(), GL_TRIANGLE_STRIP);
 }
 
 /*
@@ -4896,7 +4896,7 @@ gg::GgTriangles *gg::ggEllipse(GLfloat width, GLfloat height, GLuint slices)
   }
 
   // GgTriangles オブジェクトを作成する
-  return new GgTriangles(vert.data(), static_cast<GLuint>(vert.size()), GL_TRIANGLE_FAN);
+  return new GgTriangles(vert.data(), vert.size(), GL_TRIANGLE_FAN);
 }
 
 /*
@@ -4912,7 +4912,7 @@ gg::GgTriangles *gg::ggArraysObj(const char *name, bool normalize)
   if (!ggLoadObj(name, group, material, vert, normalize)) return 0;
 
   // GgTriangles オブジェクトを作成する
-  return new GgTriangles(vert.data(), static_cast<GLuint>(vert.size()), GL_TRIANGLES);
+  return new GgTriangles(vert.data(), vert.size(), GL_TRIANGLES);
 }
 
 /*
@@ -4929,8 +4929,7 @@ gg::GgElements *gg::ggElementsObj(const char *name, bool normalize)
   if (!ggLoadObj(name, group, material, vert, face, normalize)) return 0;
 
   // GgElements オブジェクトを作成する
-  return new GgElements(vert.data(), static_cast<GLuint>(vert.size()),
-    face.data(), static_cast<GLuint>(face.size()), GL_TRIANGLES);
+  return new GgElements(vert.data(), vert.size(), face.data(), face.size(), GL_TRIANGLES);
 }
 
 /*
@@ -5025,8 +5024,7 @@ gg::GgElements *gg::ggElementsMesh(GLuint slices, GLuint stacks, const GLfloat (
   }
 
   // GgElements オブジェクトを作成する
-  return new GgElements(vert.data(), static_cast<GLuint>(vert.size()),
-    face.data(), static_cast<GLuint>(face.size()), GL_TRIANGLES);
+  return new GgElements(vert.data(), vert.size(), face.data(), face.size(), GL_TRIANGLES);
 }
 
 /*
@@ -5080,7 +5078,7 @@ gg::GgElements *gg::ggElementsSphere(GLfloat radius, int slices, int stacks)
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5104,7 +5102,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(GLfloat r, GLfloat g, GLflo
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(const GLfloat *ambient,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleMaterial *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleMaterial *const pointer(static_cast<GgSimpleMaterial *>(0));
@@ -5116,7 +5114,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(const GLfloat *ambient,
   const size_t size(pointer->ambient.size());
 
   bind();
-  for (GLuint i = 0; i < count; ++i)
+  for (GLsizeiptr i = 0; i < count; ++i)
   {
     // i 番目のブロックの ambient 要素に値を設定する
     glBufferSubData(getTarget(), offset + getSize(i), sizeof pointer->ambient, ambient + i * size);
@@ -5134,7 +5132,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialAmbient(const GLfloat *ambient,
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5158,7 +5156,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(GLfloat r, GLfloat g, GLflo
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(const GLfloat *diffuse,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleMaterial *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleMaterial *const pointer(static_cast<GgSimpleMaterial *>(0));
@@ -5188,7 +5186,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialDiffuse(const GLfloat *diffuse,
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5212,7 +5210,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(GLfloat r, GLfloat g, GLfl
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(const GLfloat *specular,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleMaterial *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleMaterial *const pointer(static_cast<GgSimpleMaterial *>(0));
@@ -5239,7 +5237,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialSpecular(const GLfloat *specular,
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialShininess(GLfloat shininess,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5260,7 +5258,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialShininess(GLfloat shininess,
 **   count 値を設定する材質データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterialShininess(const GLfloat *shininess,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5281,7 +5279,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterialShininess(const GLfloat *shininess,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleMaterialBuffer::loadMaterial(const GgSimpleMaterial *material,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleMaterial *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleMaterial *const pointer(static_cast<GgSimpleMaterial *>(0));
@@ -5308,7 +5306,7 @@ void gg::GgSimpleMaterialBuffer::loadMaterial(const GgSimpleMaterial *material,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightAmbient(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5332,7 +5330,7 @@ void gg::GgSimpleLightBuffer::loadLightAmbient(GLfloat r, GLfloat g, GLfloat b, 
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightAmbient(const GLfloat *ambient,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleLight *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleLight *const pointer(static_cast<GgSimpleLight *>(0));
@@ -5362,7 +5360,7 @@ void gg::GgSimpleLightBuffer::loadLightAmbient(const GLfloat *ambient,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightDiffuse(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5386,7 +5384,7 @@ void gg::GgSimpleLightBuffer::loadLightDiffuse(GLfloat r, GLfloat g, GLfloat b, 
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightDiffuse(const GLfloat *diffuse,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleLight *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleLight *const pointer(static_cast<GgSimpleLight *>(0));
@@ -5416,7 +5414,7 @@ void gg::GgSimpleLightBuffer::loadLightDiffuse(const GLfloat *diffuse,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightSpecular(GLfloat r, GLfloat g, GLfloat b, GLfloat a,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5440,7 +5438,7 @@ void gg::GgSimpleLightBuffer::loadLightSpecular(GLfloat r, GLfloat g, GLfloat b,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightSpecular(const GLfloat *specular,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleLight *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleLight *const pointer(static_cast<GgSimpleLight *>(0));
@@ -5467,7 +5465,7 @@ void gg::GgSimpleLightBuffer::loadLightSpecular(const GLfloat *specular,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightMaterial(const GgSimpleLight &material,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5493,7 +5491,7 @@ void gg::GgSimpleLightBuffer::loadLightMaterial(const GgSimpleLight &material,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightPosition(GLfloat x, GLfloat y, GLfloat z, GLfloat w,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // データを格納するバッファオブジェクトの先頭のポインタ
   char *const start(static_cast<char *>(map(first, count)));
@@ -5517,7 +5515,7 @@ void gg::GgSimpleLightBuffer::loadLightPosition(GLfloat x, GLfloat y, GLfloat z,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLightPosition(const GLfloat *position,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleLight *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleLight *const pointer(static_cast<GgSimpleLight *>(0));
@@ -5544,7 +5542,7 @@ void gg::GgSimpleLightBuffer::loadLightPosition(const GLfloat *position,
 **   count 値を設定する光源データの数, デフォルトは 1
 */
 void gg::GgSimpleLightBuffer::loadLight(const GgSimpleLight *light,
-  GLuint first, GLuint count) const
+  GLuint first, GLsizeiptr count) const
 {
   // 0 を (GgSimpleLight *) にキャストして得たバッファオブジェクト上のポインタ
   const GgSimpleLight *const pointer(static_cast<GgSimpleLight *>(0));
@@ -5593,24 +5591,23 @@ gg::GgObj::GgObj(const char *name, const GgSimpleShader *shader, bool normalize)
   if (ggLoadObj(name, group, mat, vert, face, normalize))
   {
     // 頂点バッファオブジェクトを作成する
-    data = new GgElements(vert.data(), static_cast<GLuint>(vert.size()),
-      face.data(), static_cast<GLuint>(face.size()), GL_TRIANGLES);
+    data = new GgElements(vert.data(), vert.size(), face.data(), face.size(), GL_TRIANGLES);
 
     // 材質データを設定する
-    material = new GgSimpleMaterialBuffer(mat.data(), static_cast<GLuint>(mat.size()));
+    material = new GgSimpleMaterialBuffer(mat.data(), mat.size());
   }
 }
 
 /*
 ** Wavefront OBJ 形式のデータ：図形の描画
 */
-void gg::GgObj::draw(GLuint first, GLsizei count) const
+void gg::GgObj::draw(GLuint first, GLsizeiptr count) const
 {
   // 保持しているグループの数
-  const GLuint ng(static_cast<GLuint>(group.size()));
+  const GLsizeiptr ng(group.size());
 
   // 描画する最後のグループの次
-  GLuint last(count <= 0 ? ng : first + count);
+  GLsizeiptr last(count <= static_cast<GLsizeiptr>(0) ? ng : first + count);
   if (last > ng) last = ng;
 
   for (GLuint g = first; g < last; ++g)
