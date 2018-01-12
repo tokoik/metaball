@@ -25,7 +25,7 @@ static void generatePoints(Points &points, int count)
 
   // 正規分布
   // 平均 0、標準偏差 0.25 で分布させる
-  std::normal_distribution<GLfloat> normal(1.0f, 0.25f);
+  std::normal_distribution<GLfloat> normal(0.0f, 0.5f);
 
   // 原点中心に直径方向に正規分布する点群を発生する
   while (--count >= 0)
@@ -60,9 +60,22 @@ void GgApplication::run()
   // 背景色を指定する
   glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
 
+  // 点のサイズを指定する
+  glPointSize(128.0f);
+  glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+  // 加算を有効にする
+  //glBlendFunc(GL_ONE, GL_ZERO); // 上書き（デフォルト）
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // 通常のアルファブレンデング
+  glBlendFunc(GL_ONE, GL_ONE); // 加算
+  //glBlendColor(0.01f, 0.01f, 0.01f, 0.0f);
+  //glBlendFunc(GL_CONSTANT_COLOR, GL_ONE); // 加算
+  glBlendEquation(GL_FUNC_ADD);
+  glEnable(GL_BLEND);
+
   // 点群を生成する
   Points points;
-  generatePoints(points, 100000);
+  generatePoints(points, 100);
 
   // 点群の頂点配列オブジェクト
   const GgPoints cloud(points.data(), points.size());
@@ -70,6 +83,9 @@ void GgApplication::run()
   // 点を描くシェーダ
   const GgPointShader shader("point.vert", "point.frag");
 
+  // 点の大きさ
+  const GLint sizeLoc(glGetUniformLocation(shader.get(), "size"));
+  
   // 視点の位置
   const GgMatrix mv(ggLookat(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
 
@@ -84,6 +100,9 @@ void GgApplication::run()
 
     // シェーダの指定
     shader.use();
+
+    // 点の大きさを設定する
+    glUniform1f(sizeLoc, window.getHeight() * 0.1f);
 
     // 変換行列の設定
     shader.loadMatrix(mp, mv * window.getLeftTrackball());
