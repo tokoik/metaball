@@ -60,8 +60,7 @@ void GgApplication::run()
   // 背景色を指定する
   glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
 
-  // 点のサイズを指定する
-  glPointSize(128.0f);
+  // 点のサイズはシェーダから変更する
   glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
   // 加算を有効にする
@@ -69,13 +68,13 @@ void GgApplication::run()
   //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // 通常のアルファブレンデング
   glBlendFunc(GL_ONE, GL_ONE); // 加算
   //glBlendColor(0.01f, 0.01f, 0.01f, 0.0f);
-  //glBlendFunc(GL_CONSTANT_COLOR, GL_ONE); // 加算
+  //glBlendFunc(GL_CONSTANT_COLOR, GL_ONE); // 定数を加算
   glBlendEquation(GL_FUNC_ADD);
   glEnable(GL_BLEND);
 
   // 点群を生成する
   Points points;
-  generatePoints(points, 100);
+  generatePoints(points, 10000);
 
   // 点群の頂点配列オブジェクト
   const GgPoints cloud(points.data(), points.size());
