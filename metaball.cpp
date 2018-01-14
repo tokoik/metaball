@@ -10,6 +10,24 @@ typedef std::array<GLfloat, 4> Point;
 // 点群
 typedef std::vector<Point> Points;
 
+// 球の数
+constexpr int sphereCount(1000);
+
+// 球の半径
+constexpr GLfloat sphereRadius(0.3f);
+
+// 画角
+constexpr GLfloat fovy(1.0f);
+
+// 前方面と後方面の位置
+constexpr GLfloat zNear(4.0f), zFar(6.0f);
+
+// FBO のサイズ
+constexpr GLsizei fboWidth(512), fboHeight(512);
+
+// スライスの数
+constexpr int slices(100);
+
 // 点群の生成
 static void generatePoints(Points &points, int count)
 {
@@ -25,7 +43,7 @@ static void generatePoints(Points &points, int count)
 
   // 正規分布
   // 平均 0、標準偏差 0.25 で分布させる
-  std::normal_distribution<GLfloat> normal(0.0f, 0.5f);
+  std::normal_distribution<GLfloat> normal(0.0f, 1.0f);
 
   // 原点中心に直径方向に正規分布する点群を発生する
   while (--count >= 0)
@@ -55,59 +73,163 @@ static void generatePoints(Points &points, int count)
 void GgApplication::run()
 {
   // ウィンドウを作成する
-  Window window("metaball");
+  Window window("metaball", fboWidth, fboHeight);
 
-  // 背景色を指定する
-  glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
+  //
+  // フレームバッファオブジェクト
+  //
 
-  // 点のサイズはシェーダから変更する
-  glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+  // カラーバッファに使うテクスチャ
+  GLuint cb;
+  glGenTextures(1, &cb);
+  glBindTexture(GL_TEXTURE_2D, cb);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, fboWidth, fboHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  // 加算を有効にする
-  //glBlendFunc(GL_ONE, GL_ZERO); // 上書き（デフォルト）
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // 通常のアルファブレンデング
-  glBlendFunc(GL_ONE, GL_ONE); // 加算
-  //glBlendColor(0.01f, 0.01f, 0.01f, 0.0f);
-  //glBlendFunc(GL_CONSTANT_COLOR, GL_ONE); // 定数を加算
-  glBlendEquation(GL_FUNC_ADD);
-  glEnable(GL_BLEND);
+  // フレームバッファオブジェクト
+  GLuint fbo;
+  glGenFramebuffers(1, &fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cb, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // 矩形を描くシェーダ
+  const GLuint rectangleShader(ggLoadShader("rectangle.vert", "rectangle.frag"));
+
+  // テクスチャ
+  const GLint imageLoc(glGetUniformLocation(rectangleShader, "image"));
+
+  // 閾値
+  const GLint thresholdLoc(glGetUniformLocation(rectangleShader, "threshold"));
+
+  //
+  // 点群
+  //
 
   // 点群を生成する
   Points points;
-  generatePoints(points, 10000);
+  generatePoints(points, sphereCount);
 
   // 点群の頂点配列オブジェクト
   const GgPoints cloud(points.data(), points.size());
 
   // 点を描くシェーダ
-  const GgPointShader shader("point.vert", "point.frag");
+  const GgPointShader pointShader("point.vert", "point.frag");
 
-  // 点の大きさ
-  const GLint sizeLoc(glGetUniformLocation(shader.get(), "size"));
-  
-  // 視点の位置
+  // スライスの位置
+  const GLint zsliceLoc(glGetUniformLocation(pointShader.get(), "zslice"));
+
+  // 球の半径
+  const GLint radiusLoc(glGetUniformLocation(pointShader.get(), "radius"));
+
+  // フレームバッファのサイズ
+  const GLint sizeLoc(glGetUniformLocation(pointShader.get(), "size"));
+
+  // 点のサイズはシェーダから変更する
+  glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+  //
+  // OpenGL の設定
+  //
+
+  /*
+  ** レンダリング結果のブレンド
+  **
+  **   glBlendFunc(GL_ONE, GL_ZERO);                       // 上書き（デフォルト）
+  **   glBlendFunc(GL_ZERO, GL_ONE);                       // 描かない
+  **   glBlendFunc(GL_ONE, GL_ONE);                        // 加算
+  **   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // 通常のアルファブレンデング
+  **   glBlendColor(0.01f, 0.01f, 0.01f, 0.0f);            // 加算する定数
+  **   glBlendFunc(GL_CONSTANT_COLOR, GL_ONE);             // 定数を加算
+  */
+
+  // フレームバッファに加算する
+  glBlendFunc(GL_ONE, GL_ONE);
+  glBlendEquation(GL_FUNC_ADD);
+
+  // デプスバッファは使うけどデプステストはしない
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+
+  // 背景色を指定する
+  glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
+
+  // フレームバッファオブジェクトの初期値
+  constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
+
+  // ビュー変換行列
   const GgMatrix mv(ggLookat(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
 
   // ウィンドウが開いている間繰り返す
   while (window.shouldClose() == GL_FALSE)
   {
-    // 投影変換行列
-    const GgMatrix mp(ggPerspective(1.0f, window.getAspect(), 1.0f, 9.0f));
+    // モデルビュー変換行列
+    const GgMatrix mw(mv * window.getLeftTrackball());
 
     // ウィンドウを消去する
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // シェーダの指定
-    shader.use();
+    for (int i = slices; --i >= 0;)
+    {
+      // FBO に描く
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+      glViewport(0, 0, fboWidth, fboHeight);
 
-    // 点の大きさを設定する
-    glUniform1f(sizeLoc, window.getHeight() * 0.1f);
+      // フレームバッファへの加算を有効にする
+      glEnable(GL_BLEND);
 
-    // 変換行列の設定
-    shader.loadMatrix(mp, mv * window.getLeftTrackball());
+      // 球を描くシェーダを指定する
+      pointShader.use();
 
-    // 描画
-    cloud.draw();
+      // フレームバッファのサイズを設定する
+      glUniform2f(sizeLoc, static_cast<GLfloat>(window.getWidth()), static_cast<GLfloat>(window.getHeight()));
+
+      // 投影変換行列
+      const GgMatrix mp(ggPerspective(fovy, 1.0f, zNear, zFar));
+
+      // 変換行列を設定する
+      pointShader.loadMatrix(mp, mw);
+
+      // スライスの位置
+      const GLfloat zclip(static_cast<GLfloat>(i * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
+      const GLfloat zslice(mp.get(14) / (zclip * mp.get(11) - mp.get(10)));
+
+      // スライスの位置を設定する
+      glUniform1f(zsliceLoc, zslice);
+
+      // 球の半径を設定する
+      glUniform1f(radiusLoc, sphereRadius);
+
+      // フレームバッファを消去する
+      glClearBufferfv(GL_COLOR, 0, zero);
+
+      // 描画
+      cloud.draw();
+
+      // 通常のフレームバッファに描く
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+      glViewport(0, 0, window.getWidth(), window.getHeight());
+
+      // フレームバッファへの加算を無効にする
+      glDisable(GL_BLEND);
+
+      // 矩形を描くシェーダを選択する
+      glUseProgram(rectangleShader);
+
+      // テクスチャを割り当てる
+      glBindTexture(GL_TEXTURE_2D, cb);
+      glActiveTexture(GL_TEXTURE0);
+      glUniform1i(imageLoc, 0);
+
+      // 閾値を設定する
+      glUniform1f(thresholdLoc, window.getWheel() * 0.1f + 1.0f);
+
+      // 矩形を描画する
+      glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
 
     // カラーバッファを入れ替えてイベントを取り出す
     window.swapBuffers();

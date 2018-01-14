@@ -2170,6 +2170,13 @@ namespace gg
     {
       for (int i = 0; i < 16; ++i) a[i] = array[i];
     }
+
+    //! \brief •ÏŠ·s—ñ‚Ì—v‘f‚ðŽæ‚èo‚·.
+    //!   \return •ÏŠ·s—ñ‚ðŠi”[‚µ‚½ GLfloat Œ^‚Ì 16 —v‘f‚Ì”z—ñ.
+    const GLfloat get(int i) const
+    {
+      return array.at(i);
+    }
   };
 
   //! \brief ’PˆÊs—ñ‚ð•Ô‚·.

@@ -6,15 +6,23 @@
 //   点を描くシェーダ
 //
 
+// 球の中心とスライスとの距離の球の半径に対する割合
+in float d;
+
 // フレームバッファに出力するデータ
 layout (location = 0) out vec4 fc;                  // フラグメントの色
 
-void main(void)
+void main()
 {
-  //vec2 c = gl_PointCoord * 2.0 - 1.0;	  // 座標値を [0, 1] → [-1, 1] に変換する
-	//float d = 1.0 - length(c);					  // 1 - 中心からの距離の二乗
-	//if (d < 0.0) discard;                 // 円の外はフラグメントを捨てる
-	//float e = d * d * (3.0 - 2.0 * d);    // Hermite 補間
-  
-  fc = vec4(0.1 * smoothstep(1.0, 0.0, length(gl_PointCoord * 2.0 - 1.0)));  // 白色を描くだけ
+	// このフラグメントの球の断面上の位置
+	vec3 p = vec3(gl_PointCoord * 2.0 - 1.0, d);
+
+	// その球の中心からの距離
+	float r = length(p);
+
+	// 球とスライスが交差していなければフラグメントを捨てる
+	if (r > 1.0) discard;
+
+	// ベクトルとポテンシャル
+	fc = vec4(p / r, smoothstep(1.0, 0.0, r));
 }

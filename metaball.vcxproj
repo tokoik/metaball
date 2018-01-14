@@ -138,6 +138,8 @@
   <ItemGroup>
     <None Include="point.frag" />
     <None Include="point.vert" />
+    <None Include="rectangle.frag" />
+    <None Include="rectangle.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

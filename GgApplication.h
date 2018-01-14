@@ -126,32 +126,14 @@ struct GgApplication
     // ビューポートのアスペクト比
     GLfloat aspect;
 
-    // シフトキー
-    bool shift_key;
-
-    // コントロールキー
-    bool control_key;
-
     // 矢印キー
-    int arrow[2];
-
-    // シフトキーを押しながら矢印キー
-    int shift_arrow[2];
-
-    // コントロールキーを押しながら矢印キー
-    int control_arrow[2];
+    int arrow[4][2];
 
     // マウスの現在位置
     double mouse_x, mouse_y;
 
     // マウスホイールの回転量
-    double wheel_rotation;
-
-    // シフトを押しながらマウスホイールの回転量
-    double shift_wheel_rotation;
-
-    // コントロールを押しながらマウスホイールの回転量
-    double control_wheel_rotation;
+    double wheel_rotation[4];
 
     // 左ドラッグによるトラックボール
     GgTrackball trackball_left;
@@ -327,8 +309,11 @@ struct GgApplication
       glfwSetFramebufferSizeCallback(window, resize);
 
       // 矢印キー・マウス・ジョイスティック操作の初期値を設定する
-      arrow[0] = arrow[1] = shift_arrow[0] = shift_arrow[1] = control_arrow[0] = control_arrow[1] = 0;
-      wheel_rotation = shift_wheel_rotation = control_wheel_rotation = 0.0;
+      for (int i = 0; i < 4; ++i)
+      {
+        arrow[i][0] = arrow[i][1] = 0;
+        wheel_rotation[i] = 0.0;
+      }
 
 #if defined(USE_OCULUS_RIFT)
       // Oculus Rift の情報を取り出す
@@ -849,9 +834,6 @@ struct GgApplication
       glfwSwapBuffers(window);
 #endif
 
-      // シフトキーとコントロールキーの状態をリセットする
-      shift_key = control_key = false;
-
       // イベントを取り出す
       glfwPollEvents();
 
@@ -905,20 +887,17 @@ struct GgApplication
 
       if (instance)
       {
-        if (action == GLFW_PRESS)
+        if (action)
         {
           switch (key)
           {
           case GLFW_KEY_R:
-            // マウスホイールの回転量をリセットする
-            instance->wheel_rotation = 0.0;
-            instance->shift_wheel_rotation = 0.0;
-            instance->control_wheel_rotation = 0.0;
-
-            // 矢印キーの設定値をリセットする
-            instance->arrow[0] = instance->arrow[1] = 0;
-            instance->shift_arrow[0] = instance->shift_arrow[1] = 0;
-            instance->control_arrow[0] = instance->control_arrow[1] = 0;
+            // 矢印キーの設定値とマウスホイールの回転量をリセットする
+            for (int i = 0; i < 4; ++i)
+            {
+              instance->arrow[i][0] = instance->arrow[i][1] = 0;
+              instance->wheel_rotation[i] = 0.0;
+            }
 
           case GLFW_KEY_O:
             // トラックボールをリセットする
@@ -933,50 +912,48 @@ struct GgApplication
           case GLFW_KEY_DELETE:
             break;
 
-          case GLFW_KEY_LEFT_SHIFT:
-          case GLFW_KEY_RIGHT_SHIFT:
-            instance->shift_key = true;
-            break;
-
-          case GLFW_KEY_LEFT_CONTROL:
-          case GLFW_KEY_RIGHT_CONTROL:
-            instance->control_key = true;
-            break;
-
           case GLFW_KEY_UP:
-            if (instance->shift_key)
-              instance->shift_arrow[1]++;
-            else if (instance->control_key)
-              instance->control_arrow[1]++;
+            if (mods & GLFW_MOD_SHIFT)
+              instance->arrow[1][1]++;
+            else if (mods & GLFW_MOD_CONTROL)
+              instance->arrow[2][1]++;
+            else if (mods & GLFW_MOD_ALT)
+              instance->arrow[3][1]++;
             else
-              instance->arrow[1]++;
+              instance->arrow[0][1]++;
             break;
 
           case GLFW_KEY_DOWN:
-            if (instance->shift_key)
-              instance->shift_arrow[1]--;
-            else if (instance->control_key)
-              instance->control_arrow[1]--;
+            if (mods & GLFW_MOD_SHIFT)
+              instance->arrow[1][1]--;
+            else if (mods & GLFW_MOD_CONTROL)
+              instance->arrow[2][1]--;
+            else if (mods & GLFW_MOD_ALT)
+              instance->arrow[3][1]--;
             else
-              instance->arrow[1]--;
+              instance->arrow[0][1]--;
             break;
 
           case GLFW_KEY_RIGHT:
-            if (instance->shift_key)
-              instance->shift_arrow[0]++;
-            else if (instance->control_key)
-              instance->control_arrow[0]++;
+            if (mods & GLFW_MOD_SHIFT)
+              instance->arrow[1][0]++;
+            else if (mods & GLFW_MOD_CONTROL)
+              instance->arrow[2][0]++;
+            else if (mods & GLFW_MOD_ALT)
+              instance->arrow[3][0]++;
             else
-              instance->arrow[0]++;
+              instance->arrow[0][0]++;
             break;
 
           case GLFW_KEY_LEFT:
-            if (instance->shift_key)
-              instance->shift_arrow[0]--;
-            else if (instance->control_key)
-              instance->control_arrow[0]--;
+            if (mods & GLFW_MOD_SHIFT)
+              instance->arrow[1][0]--;
+            else if (mods & GLFW_MOD_CONTROL)
+              instance->arrow[2][0]--;
+            else if (mods & GLFW_MOD_ALT)
+              instance->arrow[3][0]--;
             else
-              instance->arrow[0]--;
+              instance->arrow[0][0]--;
             break;
 
           default:
@@ -1047,18 +1024,14 @@ struct GgApplication
 
       if (instance)
       {
-        if (instance->shift_key)
-          instance->shift_wheel_rotation += y;
-        else if (instance->control_key)
-          instance->control_wheel_rotation += y;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT))
+          instance->wheel_rotation[1] += y;
+        else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL))
+          instance->wheel_rotation[2] += y;
+        else if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) || glfwGetKey(window, GLFW_KEY_RIGHT_ALT))
+          instance->wheel_rotation[3] += y;
         else
-        {
-          instance->wheel_rotation += y;
-          if (instance->wheel_rotation < -100.0)
-            instance->wheel_rotation = -100.0;
-          else if (instance->wheel_rotation > 49.0)
-            instance->wheel_rotation = 49.0;
-        }
+          instance->wheel_rotation[0] += y;
       }
     }
 
@@ -1096,48 +1069,58 @@ struct GgApplication
     }
 
     //
+    // 矢印キーの現在の値を得る
+    //
+    GLfloat getArrow(int direction = 0, int mods = 0) const
+    {
+      if (direction < 0 || direction > 1) throw std::out_of_range("No such directon.");
+      if (mods < 0 || mods > 3) throw std::out_of_range("No such modifier key.");
+      return static_cast<GLfloat>(arrow[mods][direction]);
+    }
+
+    //
     // 矢印キーの現在の X 値を得る
     //
-    GLfloat getArrowX() const
+    GLfloat getArrowX(int mods = 0) const
     {
-      return static_cast<GLfloat>(arrow[0]);
+      return getArrow(0, mods);
     }
 
     //
     // 矢印キーの現在の Y 値を得る
     //
-    GLfloat getArrowY() const
+    GLfloat getArrowY(int mods = 0) const
     {
-      return static_cast<GLfloat>(arrow[1]);
+      return getArrow(1, mods);
     }
 
     //
     // 矢印キーの現在の値を得る
     //
-    void getArrow(GLfloat *arrow) const
+    void getArrow(GLfloat *arrow, int mods = 0) const
     {
-      arrow[0] = getArrowX();
-      arrow[1] = getArrowY();
+      arrow[0] = getArrowX(mods);
+      arrow[1] = getArrowY(mods);
     }
 
     //
-    // シフトキーを押しながら矢印キーの現在の X 値を得る
+    // Shift キーを押しながら矢印キーの現在の X 値を得る
     //
     GLfloat getShiftArrowX() const
     {
-      return static_cast<GLfloat>(shift_arrow[0]);
+      return getArrow(0, 1);
     }
 
     //
-    // シフトキーを押しながら矢印キーの現在の Y 値を得る
+    // Shift キーを押しながら矢印キーの現在の Y 値を得る
     //
     GLfloat getShiftArrowY() const
     {
-      return static_cast<GLfloat>(shift_arrow[1]);
+      return getArrow(1, 1);
     }
 
     //
-    // シフトキーを押しながら矢印キーの現在の値を得る
+    // Shift キーを押しながら矢印キーの現在の値を得る
     //
     void getShiftArrow(GLfloat *shift_arrow) const
     {
@@ -1146,28 +1129,53 @@ struct GgApplication
     }
 
     //
-    // コントロールキーを押しながら矢印キーの現在の X 値を得る
+    // Control キーを押しながら矢印キーの現在の X 値を得る
     //
     GLfloat getControlArrowX() const
     {
-      return static_cast<GLfloat>(control_arrow[0]);
+      return getArrow(2, 0);
     }
 
     //
-    // コントロールキーを押しながら矢印キーの現在の Y 値を得る
+    // Control キーを押しながら矢印キーの現在の Y 値を得る
     //
     GLfloat getControlArrowY() const
     {
-      return static_cast<GLfloat>(control_arrow[1]);
+      return getArrow(2, 1);
     }
 
     //
-    // コントロールキーを押しながら矢印キーの現在の値を得る
+    // Control キーを押しながら矢印キーの現在の値を得る
     //
     void getControlArrow(GLfloat *control_arrow) const
     {
       control_arrow[0] = getControlArrowX();
       control_arrow[1] = getControlArrowY();
+    }
+
+    //
+    // Alt キーを押しながら矢印キーの現在の X 値を得る
+    //
+    GLfloat getAltArrowX() const
+    {
+      return getArrow(3, 0);
+    }
+
+    //
+    // Alt キーを押しながら矢印キーの現在の Y 値を得る
+    //
+    GLfloat getAltArrowY() const
+    {
+      return getArrow(3, 1);
+    }
+
+    //
+    // Alt キーを押しながら矢印キーの現在の値を得る
+    //
+    void getAltlArrow(GLfloat *alt_arrow) const
+    {
+      alt_arrow[0] = getAltArrowX();
+      alt_arrow[1] = getAltArrowY();
     }
 
     //
@@ -1198,25 +1206,34 @@ struct GgApplication
     //
     // マウスホイールの現在の回転角を得る
     //
-    GLfloat getWheel() const
+    GLfloat getWheel(int mods = 0) const
     {
-      return static_cast<GLfloat>(wheel_rotation);
+      if (mods < 0 || mods > 3) throw std::out_of_range("No such modifier key.");
+      return static_cast<GLfloat>(wheel_rotation[mods]);
     }
 
     //
-    // シフトを押しながらマウスホイールの現在の回転角を得る
+    // Shift キーを押しながらマウスホイールの現在の回転角を得る
     //
     GLfloat getShiftWheel() const
     {
-      return static_cast<GLfloat>(shift_wheel_rotation);
+      return getWheel(1);
     }
 
     //
-    // コントロールを押しながらマウスホイールの現在の回転角を得る
+    // Control キーを押しながらマウスホイールの現在の回転角を得る
     //
     GLfloat getControlWheel() const
     {
-      return static_cast<GLfloat>(control_wheel_rotation);
+      return getWheel(2);
+    }
+
+    //
+    // Alt キーを押しながらマウスホイールの現在の回転角を得る
+    //
+    GLfloat getAltWheel() const
+    {
+      return getWheel(3);
     }
 
     //
