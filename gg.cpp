@@ -43,7 +43,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Visual Studio のリリースビルドではコンソールを出さない
 #if defined(_WIN32) && !defined(_DEBUG)
-#  pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+//#  pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 #endif
 
 // OpenGL 3.2 の API のエントリポイント

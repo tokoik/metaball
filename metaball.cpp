@@ -11,7 +11,7 @@ typedef std::array<GLfloat, 4> Point;
 typedef std::vector<Point> Points;
 
 // 球の数
-constexpr int sphereCount(1000);
+constexpr int sphereCount(100000);
 
 // 球の半径
 constexpr GLfloat sphereRadius(0.3f);
@@ -150,7 +150,7 @@ void GgApplication::run()
   glBlendFunc(GL_ONE, GL_ONE);
   glBlendEquation(GL_FUNC_ADD);
 
-  // デプスバッファは使うけどデプステストはしない
+  // デプスバッファは使わない
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
 
@@ -163,17 +163,68 @@ void GgApplication::run()
   // ビュー変換行列
   const GgMatrix mv(ggLookat(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
 
+  // 投影変換行列
+  const GgMatrix mp(ggPerspective(fovy, 1.0f, zNear, zFar));
+
+  // バケット
+  std::vector<GLuint> bucket[slices];
+
   // ウィンドウが開いている間繰り返す
   while (window.shouldClose() == GL_FALSE)
   {
+    std::cout << "start\n";
+
+    // バケットのクリア
+    for (auto b : bucket) b.clear();
+    std::cout << "clear bucket\n";
+
     // モデルビュー変換行列
     const GgMatrix mw(mv * window.getLeftTrackball());
+
+    // すべての球の中心について
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+      // 球の中心の視点座標系の z 値
+      const GLfloat zw(mw.get(2) * points[i][0] + mw.get(6) * points[i][1]
+        + mw.get(10) * points[i][2] + mw.get(14) * points[i][3]);
+
+      // 球の前端の視点座標系の z 値
+      const GLfloat zwf(zw + sphereRadius);
+
+      // 球の前端のスクリーン座標系における z 値
+      const GLfloat zsf((mp.get(10) * zwf + mp.get(14)) / (mp.get(11) * zwf));
+
+      // 球の前端の位置におけるバケット番号
+      int bf(static_cast<int>(ceil((zsf * 0.5f + 0.5f) * slices - 0.5f)));
+      if (bf < 0) bf = 0;
+
+      // 球の後端の視点座標系の z 値
+      const GLfloat zwr(zw - sphereRadius);
+
+      // 球の後端のスクリーン座標系における z 値
+      const GLfloat zsr((mp.get(10) * zwr + mp.get(14)) / (mp.get(11) * zwr));
+
+      // 球の後端の位置におけるバケット番号
+      int br(static_cast<int>(floor((zsr * 0.5f + 0.5f) * slices - 0.5f)));
+      if (br >= slices) br = slices - 1;
+
+      // バケットソート
+      for (int b = bf; b < br; ++b) bucket[b].emplace_back(static_cast<GLuint>(i));
+    }
+    std::cout << "sort\n";
 
     // ウィンドウを消去する
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // 各スライスについて
     for (int i = slices; --i >= 0;)
     {
+      // スクリーン座標系におけるスライスの位置
+      const GLfloat zclip(static_cast<GLfloat>(i * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
+
+      // 視点座標系のスライスの位置
+      const GLfloat zslice(mp.get(14) / (zclip * mp.get(11) - mp.get(10)));
+
       // FBO に描く
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
       glViewport(0, 0, fboWidth, fboHeight);
@@ -187,15 +238,8 @@ void GgApplication::run()
       // フレームバッファのサイズを設定する
       glUniform2f(sizeLoc, static_cast<GLfloat>(window.getWidth()), static_cast<GLfloat>(window.getHeight()));
 
-      // 投影変換行列
-      const GgMatrix mp(ggPerspective(fovy, 1.0f, zNear, zFar));
-
       // 変換行列を設定する
       pointShader.loadMatrix(mp, mw);
-
-      // スライスの位置
-      const GLfloat zclip(static_cast<GLfloat>(i * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
-      const GLfloat zslice(mp.get(14) / (zclip * mp.get(11) - mp.get(10)));
 
       // スライスの位置を設定する
       glUniform1f(zsliceLoc, zslice);

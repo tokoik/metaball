@@ -2175,7 +2175,7 @@ namespace gg
     //!   \return •ÏŠ·s—ñ‚ğŠi”[‚µ‚½ GLfloat Œ^‚Ì 16 —v‘f‚Ì”z—ñ.
     const GLfloat get(int i) const
     {
-      return array.at(i);
+      return array[i];
     }
   };
 
