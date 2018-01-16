@@ -8,7 +8,7 @@
 #define TIME 0
 
 // 点
-typedef std::array<GLfloat, 4> Point;
+typedef std::array<GLfloat, 3> Point;
 
 // 点群
 typedef std::vector<Point> Points;
@@ -64,7 +64,7 @@ static void generatePoints(Points &points, int count)
     const GLfloat r(normal(rn));
 
     // 点の位置
-    const Point p{ r * sp * ct, r * sp * st, r * cp, 1.0f };
+    const Point p{ r * sp * ct, r * sp * st, r * cp };
 
     // 点を追加する
     points.emplace_back(p);
@@ -127,7 +127,7 @@ void GgApplication::run()
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof (Point), points.data(), GL_STREAM_DRAW);
-  glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
 
 #if SORT
@@ -176,7 +176,7 @@ void GgApplication::run()
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
 
-  // 背景色を指定する
+  // 背景色のアルファ値は 0 にする
   glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
 
   // フレームバッファオブジェクトの初期値
@@ -210,7 +210,7 @@ void GgApplication::run()
     {
       // 球の中心の視点座標系の z 値
       const GLfloat zw(mw.get(2) * points[i][0] + mw.get(6) * points[i][1]
-        + mw.get(10) * points[i][2] + mw.get(14) * points[i][3]);
+        + mw.get(10) * points[i][2] + mw.get(14));
 
       // 球の前端の視点座標系の z 値
       const GLfloat zwf(zw + sphereRadius);

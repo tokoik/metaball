@@ -20,9 +20,17 @@ void main()
 	// その球の中心からの距離
 	float r = length(p);
 
+#if 0
+	// 球とスライスが交差していなければフラグメントを捨てる
+	if (all(bvec2(r == 0.0, r > 1.0))) discard;
+
+	// ベクトルとポテンシャル
+	fc = vec4(p / r, smoothstep(1.0, 0.0, r));
+#else
 	// 球とスライスが交差していなければフラグメントを捨てる
 	if (r > 1.0) discard;
 
 	// ベクトルとポテンシャル
-	fc = vec4(p / r, smoothstep(1.0, 0.0, r));
+	fc = vec4(p, smoothstep(1.0, 0.0, r));
+#endif
 }
