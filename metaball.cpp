@@ -4,6 +4,9 @@
 // 乱数
 #include <random>
 
+#define SORT 1
+#define TIME 0
+
 // 点
 typedef std::array<GLfloat, 4> Point;
 
@@ -11,19 +14,19 @@ typedef std::array<GLfloat, 4> Point;
 typedef std::vector<Point> Points;
 
 // 球の数
-constexpr int sphereCount(100000);
+constexpr int sphereCount(10000);
 
 // 球の半径
-constexpr GLfloat sphereRadius(0.3f);
+constexpr GLfloat sphereRadius(0.2f);
 
 // 画角
 constexpr GLfloat fovy(1.0f);
 
 // 前方面と後方面の位置
-constexpr GLfloat zNear(4.0f), zFar(6.0f);
+constexpr GLfloat zNear(3.0f), zFar(7.0f);
 
 // FBO のサイズ
-constexpr GLsizei fboWidth(512), fboHeight(512);
+constexpr GLsizei fboWidth(128), fboHeight(128);
 
 // スライスの数
 constexpr int slices(100);
@@ -35,7 +38,8 @@ static void generatePoints(Points &points, int count)
   std::random_device seed;
 
   // メルセンヌツイスター法による乱数の系列を設定する
-  std::mt19937 rn(seed());
+  //std::mt19937 rn(seed());
+  std::mt19937 rn(12345);
 
   // 一様実数分布
   // [0, 2) の値の範囲で等確率に実数を生成する
@@ -73,7 +77,7 @@ static void generatePoints(Points &points, int count)
 void GgApplication::run()
 {
   // ウィンドウを作成する
-  Window window("metaball", fboWidth, fboHeight);
+  Window window("metaball", 512, 512);
 
   //
   // フレームバッファオブジェクト
@@ -114,7 +118,25 @@ void GgApplication::run()
   generatePoints(points, sphereCount);
 
   // 点群の頂点配列オブジェクト
-  const GgPoints cloud(points.data(), points.size());
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  // 点群の位置の頂点バッファオブジェクト
+  GLuint vbo;
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof (Point), points.data(), GL_STREAM_DRAW);
+  glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
+
+#if SORT
+  // 点群のインデックスの頂点バッファオブジェクト
+  GLuint ibo;
+  glGenBuffers(1, &ibo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, points.size() * sizeof (GLuint), NULL, GL_STREAM_DRAW);
+#endif
 
   // 点を描くシェーダ
   const GgPointShader pointShader("point.vert", "point.frag");
@@ -172,14 +194,16 @@ void GgApplication::run()
   // ウィンドウが開いている間繰り返す
   while (window.shouldClose() == GL_FALSE)
   {
-    std::cout << "start\n";
-
-    // バケットのクリア
-    for (auto b : bucket) b.clear();
-    std::cout << "clear bucket\n";
+#if TIME
+    glfwSetTime(0.0);
+#endif
 
     // モデルビュー変換行列
     const GgMatrix mw(mv * window.getLeftTrackball());
+
+#if SORT
+    // バケットのクリア
+    for (int i = 0; i < slices; ++i) bucket[i].clear();
 
     // すべての球の中心について
     for (size_t i = 0; i < points.size(); ++i)
@@ -211,7 +235,11 @@ void GgApplication::run()
       // バケットソート
       for (int b = bf; b < br; ++b) bucket[b].emplace_back(static_cast<GLuint>(i));
     }
-    std::cout << "sort\n";
+#endif
+
+#if TIME
+    const double time_sort(glfwGetTime());
+#endif
 
     // ウィンドウを消去する
     glClear(GL_COLOR_BUFFER_BIT);
@@ -236,7 +264,7 @@ void GgApplication::run()
       pointShader.use();
 
       // フレームバッファのサイズを設定する
-      glUniform2f(sizeLoc, static_cast<GLfloat>(window.getWidth()), static_cast<GLfloat>(window.getHeight()));
+      glUniform2f(sizeLoc, static_cast<GLfloat>(fboWidth), static_cast<GLfloat>(fboHeight));
 
       // 変換行列を設定する
       pointShader.loadMatrix(mp, mw);
@@ -251,7 +279,13 @@ void GgApplication::run()
       glClearBufferfv(GL_COLOR, 0, zero);
 
       // 描画
-      cloud.draw();
+      glBindVertexArray(vao);
+#if SORT
+      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[i].size() * sizeof (GLuint), bucket[i].data());
+      glDrawElements(GL_POINTS, static_cast<GLsizei>(bucket[i].size()), GL_UNSIGNED_INT, NULL);
+#else
+      glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(points.size()));
+#endif
 
       // 通常のフレームバッファに描く
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -277,5 +311,9 @@ void GgApplication::run()
 
     // カラーバッファを入れ替えてイベントを取り出す
     window.swapBuffers();
+
+#if TIME
+    std::cerr << "sort:" << time_sort << ", draw:" << glfwGetTime() - time_sort << '\n';
+#endif
   }
 }
