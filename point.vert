@@ -7,7 +7,7 @@
 //
 
 // スライスの位置
-uniform float zslice;
+uniform float zSlice;
 
 // 球の半径
 uniform float radius;
@@ -31,7 +31,7 @@ void main()
   vec4 p = mv * pv;
 
 	// 球の中心とスライスとの距離の球の半径に対する割合を求める
-	d = (zslice - p.z) / radius;
+	d = (zSlice - p.z) / radius;
 
   // 球の中心ののスクリーン座標値を求める
   gl_Position = mp * p;

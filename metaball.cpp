@@ -4,8 +4,11 @@
 // 乱数
 #include <random>
 
+// メタボールをバケットソートする場合は 1
 #define SORT 1
-#define TIME 0
+
+// 時間を計測する場合は 1
+#define TIME 1
 
 // 点
 typedef std::array<GLfloat, 3> Point;
@@ -14,7 +17,7 @@ typedef std::array<GLfloat, 3> Point;
 typedef std::vector<Point> Points;
 
 // 球の数
-constexpr int sphereCount(10000);
+constexpr int sphereCount(100000);
 
 // 球の半径
 constexpr GLfloat sphereRadius(0.2f);
@@ -29,7 +32,7 @@ constexpr GLfloat zNear(3.0f), zFar(7.0f);
 constexpr GLsizei fboWidth(128), fboHeight(128);
 
 // スライスの数
-constexpr int slices(100);
+constexpr int slices(128);
 
 // 点群の生成
 static void generatePoints(Points &points, int count)
@@ -126,7 +129,7 @@ void GgApplication::run()
   GLuint vbo;
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof (Point), points.data(), GL_STREAM_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(Point), points.data(), GL_STREAM_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
 
@@ -135,14 +138,14 @@ void GgApplication::run()
   GLuint ibo;
   glGenBuffers(1, &ibo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, points.size() * sizeof (GLuint), NULL, GL_STREAM_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, points.size() * sizeof(GLuint), NULL, GL_STREAM_DRAW);
 #endif
 
   // 点を描くシェーダ
   const GgPointShader pointShader("point.vert", "point.frag");
 
   // スライスの位置
-  const GLint zsliceLoc(glGetUniformLocation(pointShader.get(), "zslice"));
+  const GLint zSliceLoc(glGetUniformLocation(pointShader.get(), "zSlice"));
 
   // 球の半径
   const GLint radiusLoc(glGetUniformLocation(pointShader.get(), "radius"));
@@ -191,6 +194,11 @@ void GgApplication::run()
   // バケット
   std::vector<GLuint> bucket[slices];
 
+#if TIME
+  unsigned int frame(0);
+  double accum_sort(0.0), accum_total(0.0);
+#endif
+
   // ウィンドウが開いている間繰り返す
   while (window.shouldClose() == GL_FALSE)
   {
@@ -203,14 +211,15 @@ void GgApplication::run()
 
 #if SORT
     // バケットのクリア
-    for (int i = 0; i < slices; ++i) bucket[i].clear();
+    for (int bucketNum = 0; bucketNum < slices; ++bucketNum)
+      bucket[bucketNum].clear();
 
     // すべての球の中心について
-    for (size_t i = 0; i < points.size(); ++i)
+    for (size_t pointNum = 0; pointNum < points.size(); ++pointNum)
     {
       // 球の中心の視点座標系の z 値
-      const GLfloat zw(mw.get(2) * points[i][0] + mw.get(6) * points[i][1]
-        + mw.get(10) * points[i][2] + mw.get(14));
+      const GLfloat zw(mw.get(2) * points[pointNum][0] + mw.get(6) * points[pointNum][1]
+        + mw.get(10) * points[pointNum][2] + mw.get(14));
 
       // 球の前端の視点座標系の z 値
       const GLfloat zwf(zw + sphereRadius);
@@ -219,8 +228,8 @@ void GgApplication::run()
       const GLfloat zsf((mp.get(10) * zwf + mp.get(14)) / (mp.get(11) * zwf));
 
       // 球の前端の位置におけるバケット番号
-      int bf(static_cast<int>(ceil((zsf * 0.5f + 0.5f) * slices - 0.5f)));
-      if (bf < 0) bf = 0;
+      int bucketFront(static_cast<int>(ceil((zsf * 0.5f + 0.5f) * slices - 0.5f)));
+      if (bucketFront < 0) bucketFront = 0;
 
       // 球の後端の視点座標系の z 値
       const GLfloat zwr(zw - sphereRadius);
@@ -229,11 +238,12 @@ void GgApplication::run()
       const GLfloat zsr((mp.get(10) * zwr + mp.get(14)) / (mp.get(11) * zwr));
 
       // 球の後端の位置におけるバケット番号
-      int br(static_cast<int>(floor((zsr * 0.5f + 0.5f) * slices - 0.5f)));
-      if (br >= slices) br = slices - 1;
+      int bucketBack(static_cast<int>(floor((zsr * 0.5f + 0.5f) * slices - 0.5f)));
+      if (bucketBack >= slices) bucketBack = slices - 1;
 
       // バケットソート
-      for (int b = bf; b < br; ++b) bucket[b].emplace_back(static_cast<GLuint>(i));
+      for (int bucketNum = bucketFront; bucketNum <= bucketBack; ++bucketNum)
+        bucket[bucketNum].emplace_back(static_cast<GLuint>(pointNum));
     }
 #endif
 
@@ -245,13 +255,13 @@ void GgApplication::run()
     glClear(GL_COLOR_BUFFER_BIT);
 
     // 各スライスについて
-    for (int i = slices; --i >= 0;)
+    for (int sliceNum = slices; --sliceNum >= 0;)
     {
       // スクリーン座標系におけるスライスの位置
-      const GLfloat zclip(static_cast<GLfloat>(i * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
+      const GLfloat zClip(static_cast<GLfloat>(sliceNum * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
 
       // 視点座標系のスライスの位置
-      const GLfloat zslice(mp.get(14) / (zclip * mp.get(11) - mp.get(10)));
+      const GLfloat zSlice(mp.get(14) / (zClip * mp.get(11) - mp.get(10)));
 
       // FBO に描く
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -270,7 +280,7 @@ void GgApplication::run()
       pointShader.loadMatrix(mp, mw);
 
       // スライスの位置を設定する
-      glUniform1f(zsliceLoc, zslice);
+      glUniform1f(zSliceLoc, zSlice);
 
       // 球の半径を設定する
       glUniform1f(radiusLoc, sphereRadius);
@@ -281,8 +291,8 @@ void GgApplication::run()
       // 描画
       glBindVertexArray(vao);
 #if SORT
-      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[i].size() * sizeof (GLuint), bucket[i].data());
-      glDrawElements(GL_POINTS, static_cast<GLsizei>(bucket[i].size()), GL_UNSIGNED_INT, NULL);
+      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[sliceNum].size() * sizeof (GLuint), bucket[sliceNum].data());
+      glDrawElements(GL_POINTS, static_cast<GLsizei>(bucket[sliceNum].size()), GL_UNSIGNED_INT, NULL);
 #else
       glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(points.size()));
 #endif
@@ -309,11 +319,16 @@ void GgApplication::run()
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
+#if TIME
+    glFinish();
+    const double time_total(glfwGetTime() - time_sort);
+    accum_sort += time_sort;
+    accum_total += time_total;
+    ++frame;
+    std::cerr << "sort:" << time_sort << " (" << accum_sort / frame << "), draw:" << time_total << " (" << accum_total / frame << ")\n";
+#endif
+
     // カラーバッファを入れ替えてイベントを取り出す
     window.swapBuffers();
-
-#if TIME
-    std::cerr << "sort:" << time_sort << ", draw:" << glfwGetTime() - time_sort << '\n';
-#endif
   }
 }
