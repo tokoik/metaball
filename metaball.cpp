@@ -8,31 +8,55 @@
 #define SORT 1
 
 // 時間を計測する場合は 1
-#define TIME 1
+#define TIME 0
 
-// 点
-typedef std::array<GLfloat, 3> Point;
+//
+// カメラ
+//
 
-// 点群
-typedef std::vector<Point> Points;
+// カメラの位置
+constexpr GLfloat cameraPosition[] = { 0.0f, 0.0f, 5.0f };
 
-// 球の数
-constexpr int sphereCount(100000);
+// 目標点の位置
+constexpr GLfloat cameraTarget[] = { 0.0f, 0.0f, 0.0f };
 
-// 球の半径
-constexpr GLfloat sphereRadius(0.2f);
+// カメラの上方向のベクトル
+constexpr GLfloat cameraUp[] = { 0.0f, 1.0f, 0.0f };
 
 // 画角
-constexpr GLfloat fovy(1.0f);
+constexpr GLfloat cameraFovy(1.0f);
 
 // 前方面と後方面の位置
-constexpr GLfloat zNear(3.0f), zFar(7.0f);
+constexpr GLfloat cameraNear(3.0f), cameraFar(7.0f);
+
+// 背景色
+constexpr GLfloat background[] = { 1.0f, 1.0f, 0.9f };
+
+//
+// フレームバッファオブジェクト
+//
 
 // FBO のサイズ
 constexpr GLsizei fboWidth(128), fboHeight(128);
 
 // スライスの数
 constexpr int slices(128);
+
+//
+// メタボール
+//
+
+// メタボールの数
+constexpr int sphereCount(10000);
+
+// メタボールの半径
+constexpr GLfloat sphereRadius(0.2f);
+
+// 点
+typedef std::array<GLfloat, 3> Point;
+
+// 点群
+typedef std::vector<Point> Points;
 
 // 点群の生成
 static void generatePoints(Points &points, int count)
@@ -50,7 +74,7 @@ static void generatePoints(Points &points, int count)
 
   // 正規分布
   // 平均 0、標準偏差 0.25 で分布させる
-  std::normal_distribution<GLfloat> normal(0.0f, 1.0f);
+  std::normal_distribution<GLfloat> normal(0.0f, 0.25f);
 
   // 原点中心に直径方向に正規分布する点群を発生する
   while (--count >= 0)
@@ -106,6 +130,9 @@ void GgApplication::run()
   // 矩形を描くシェーダ
   const GLuint rectangleShader(ggLoadShader("rectangle.vert", "rectangle.frag"));
 
+  // 法線変換病列
+  const GLint mnLoc(glGetUniformLocation(rectangleShader, "mn"));
+
   // テクスチャ
   const GLint imageLoc(glGetUniformLocation(rectangleShader, "image"));
 
@@ -129,7 +156,7 @@ void GgApplication::run()
   GLuint vbo;
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(Point), points.data(), GL_STREAM_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(Point), NULL, GL_STREAM_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
   glEnableVertexAttribArray(0);
 
@@ -147,7 +174,7 @@ void GgApplication::run()
   // スライスの位置
   const GLint zSliceLoc(glGetUniformLocation(pointShader.get(), "zSlice"));
 
-  // 球の半径
+  // メタボールの半径
   const GLint radiusLoc(glGetUniformLocation(pointShader.get(), "radius"));
 
   // フレームバッファのサイズ
@@ -180,16 +207,19 @@ void GgApplication::run()
   glDepthMask(GL_FALSE);
 
   // 背景色のアルファ値は 0 にする
-  glClearColor(0.1f, 0.2f, 0.3f, 0.0f);
+  glClearColor(background[0], background[1], background[2], 0.0f);
 
   // フレームバッファオブジェクトの初期値
   constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
 
   // ビュー変換行列
-  const GgMatrix mv(ggLookat(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f));
+  const GgMatrix mv(ggLookat(cameraPosition, cameraTarget, cameraUp));
+
+  // 法線変換行列
+  const GgMatrix mn(mv.normal());
 
   // 投影変換行列
-  const GgMatrix mp(ggPerspective(fovy, 1.0f, zNear, zFar));
+  const GgMatrix mp(ggPerspective(cameraFovy, 1.0f, cameraNear, cameraFar));
 
   // バケット
   std::vector<GLuint> bucket[slices];
@@ -203,41 +233,54 @@ void GgApplication::run()
   while (window.shouldClose() == GL_FALSE)
   {
 #if TIME
+    // 時計をリセット
     glfwSetTime(0.0);
 #endif
 
     // モデルビュー変換行列
     const GgMatrix mw(mv * window.getLeftTrackball());
 
+    //
+    // データの転送
+    //
+
+    // メタボールの中心の位置の位置のデータを送信する
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, points.size() * sizeof(Point), points.data());
+
 #if SORT
+    //
+    // バケットソート
+    //
+
     // バケットのクリア
     for (int bucketNum = 0; bucketNum < slices; ++bucketNum)
       bucket[bucketNum].clear();
 
-    // すべての球の中心について
+    // すべてのメタボールの中心について
     for (size_t pointNum = 0; pointNum < points.size(); ++pointNum)
     {
-      // 球の中心の視点座標系の z 値
+      // メタボールの中心の視点座標系の z 値
       const GLfloat zw(mw.get(2) * points[pointNum][0] + mw.get(6) * points[pointNum][1]
         + mw.get(10) * points[pointNum][2] + mw.get(14));
 
-      // 球の前端の視点座標系の z 値
+      // メタボールの前端の視点座標系の z 値
       const GLfloat zwf(zw + sphereRadius);
 
-      // 球の前端のスクリーン座標系における z 値
+      // メタボールの前端のスクリーン座標系における z 値
       const GLfloat zsf((mp.get(10) * zwf + mp.get(14)) / (mp.get(11) * zwf));
 
-      // 球の前端の位置におけるバケット番号
+      // メタボールの前端の位置におけるバケット番号
       int bucketFront(static_cast<int>(ceil((zsf * 0.5f + 0.5f) * slices - 0.5f)));
       if (bucketFront < 0) bucketFront = 0;
 
-      // 球の後端の視点座標系の z 値
+      // メタボールの後端の視点座標系の z 値
       const GLfloat zwr(zw - sphereRadius);
 
-      // 球の後端のスクリーン座標系における z 値
+      // メタボールの後端のスクリーン座標系における z 値
       const GLfloat zsr((mp.get(10) * zwr + mp.get(14)) / (mp.get(11) * zwr));
 
-      // 球の後端の位置におけるバケット番号
+      // メタボールの後端の位置におけるバケット番号
       int bucketBack(static_cast<int>(floor((zsr * 0.5f + 0.5f) * slices - 0.5f)));
       if (bucketBack >= slices) bucketBack = slices - 1;
 
@@ -248,10 +291,11 @@ void GgApplication::run()
 #endif
 
 #if TIME
+    // 前処理（バケットソート）の処理時間
     const double time_sort(glfwGetTime());
 #endif
 
-    // ウィンドウを消去する
+    // 表示ウィンドウを消去する
     glClear(GL_COLOR_BUFFER_BIT);
 
     // 各スライスについて
@@ -270,7 +314,7 @@ void GgApplication::run()
       // フレームバッファへの加算を有効にする
       glEnable(GL_BLEND);
 
-      // 球を描くシェーダを指定する
+      // メタボールを描くシェーダを指定する
       pointShader.use();
 
       // フレームバッファのサイズを設定する
@@ -282,7 +326,7 @@ void GgApplication::run()
       // スライスの位置を設定する
       glUniform1f(zSliceLoc, zSlice);
 
-      // 球の半径を設定する
+      // メタボールの半径を設定する
       glUniform1f(radiusLoc, sphereRadius);
 
       // フレームバッファを消去する
@@ -291,9 +335,11 @@ void GgApplication::run()
       // 描画
       glBindVertexArray(vao);
 #if SORT
+      // バケットソートするときはインデックスを使って描画する
       glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[sliceNum].size() * sizeof (GLuint), bucket[sliceNum].data());
       glDrawElements(GL_POINTS, static_cast<GLsizei>(bucket[sliceNum].size()), GL_UNSIGNED_INT, NULL);
 #else
+      // バケットソートしない場合は直接描画する
       glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(points.size()));
 #endif
 
@@ -312,6 +358,9 @@ void GgApplication::run()
       glActiveTexture(GL_TEXTURE0);
       glUniform1i(imageLoc, 0);
 
+      // 法線変換行列を設定する
+      glUniformMatrix4fv(mnLoc, 1, GL_FALSE, mn.get());
+
       // 閾値を設定する
       glUniform1f(thresholdLoc, window.getWheel() * 0.1f + 1.0f);
 
@@ -320,6 +369,7 @@ void GgApplication::run()
     }
 
 #if TIME
+    // 全体の処理時間
     glFinish();
     const double time_total(glfwGetTime() - time_sort);
     accum_sort += time_sort;

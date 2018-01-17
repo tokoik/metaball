@@ -4,6 +4,18 @@
 // 矩形の描画
 //
 
+// 光源
+uniform vec4 lamb = vec4(0.1, 0.1, 0.1, 1.0);
+uniform vec4 ldiff = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 lspec = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 lpos = vec4(3.0, 4.0, 5.0, 0.0);
+
+// 材質
+uniform vec4 kamb = vec4(0.2, 0.5, 0.7, 1.0);
+uniform vec4 kdiff = vec4(0.2, 0.5, 0.7, 0.0);
+uniform vec4 kspec = vec4(0.3, 0.3, 0.3, 0.0);
+float kshi = 50.0;
+
 // 法線ベクトルの変換行列
 uniform mat4 mn;
 
@@ -27,19 +39,15 @@ void main()
 	// ポテンシャルが閾値未満ならフラグメントを捨てる
 	if (c.w < threshold) discard;
 
-/*
-	// 座標計算
-  vec4 p = mv * pv;                                   // 視点座標系の頂点の位置
-  vec3 v = normalize(p.xyz);                          // 視線ベクトル
-  vec3 l = normalize((lpos * p.w - p * lpos.w).xyz);  // 光線ベクトル
-  vec3 n = normalize((mn * nv).xyz);                  // 法線ベクトル
-  vec3 h = normalize(l - v);                          // 中間ベクトル
-
-  // 陰影計算
-  idiff = max(dot(n, l), 0.0) * kdiff * ldiff + kamb * lamb;
-  ispec = pow(max(dot(n, h), 0.0), kshi) * kspec * lspec;
-*/
+  // 陰影付け
+	vec3 v = -vec3(0.0, 0.0, 1.0);
+	vec3 l = normalize(lpos.xyz);
+	vec3 n = normalize(mat3(mn) * c.xyz);
+	vec3 h = normalize(l - v);
+  vec4 idiff = max(dot(n, l), 0.0) * kdiff * ldiff + kamb * lamb;
+  vec4 ispec = pow(max(dot(n, h), 0.0), kshi) * kspec * lspec;
 
 	// 色
-	fc = vec4(normalize(c.xyz) * 0.5 + 0.5, 1.0);
+	fc = idiff + ispec;
+	//fc = vec4(n * 0.5 + 0.5, 1.0);
 }
