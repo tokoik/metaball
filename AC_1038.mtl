@@ -1,0 +1,202 @@
+newmtl Car_paint_red
+Ka 0 0 0
+Kd 0.426044 0.027307 0
+Ks 0.15 0.15 0.15
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl ChromeM
+Ka 0 0 0
+Kd 1 1 1
+Ks 2 2 2
+Ni 1
+Ns 898
+Tf 1 1 1
+d 1
+
+newmtl Chrome
+Ka 0 0 0
+Kd 1 1 1
+Ks 2 2 2
+Ni 1
+Ns 898
+Tf 1 1 1
+d 1
+
+newmtl Glass.002
+Ka 0 0 0
+Kd 0.509333 0.457642 0.428695
+Ks 0.9 0.9 0.9
+Ni 1
+Ns 821
+Tf 1 1 1
+d 0.395671
+
+newmtl Head_light
+Ka 0 0 0
+Kd 0 0 0
+Ks 1 1 1
+Ni 1
+Ns 388
+Tf 1 1 1
+d 0.704002
+
+newmtl Shiny_Metal.WHEEL
+Ka 0 0 0
+Kd 0.21798 0.217874 0.226157
+Ks 1.0 1.0 1.0
+Ni 1
+Ns 701
+Tf 1 1 1
+d 1
+
+newmtl Shiny_Metal_exhaust
+Ka 0 0 0
+Kd 0.037387 0.020507 0.020507
+Ks 0.0599328 0.0599328 0.0599328
+Ni 1
+Ns 701
+Tf 1 1 1
+d 1
+
+newmtl 
+Ka 0 0 0
+Kd 0.8 0.8 0.8
+Ks 0.8 0.8 0.8
+Ni 1
+Ns 0
+Tf 1 1 1
+d 1
+
+newmtl _fuel
+Ka 0 0 0
+Kd 0.53523 0.461936 0.461936
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+map_Kd meters fuel speedo  004.jpg
+
+newmtl _km_h
+Ka 0 0 0
+Kd 0.53523 0.461936 0.461936
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+map_Kd meters kmh speedo  004.jpg
+
+newmtl _rpm
+Ka 0 0 0
+Kd 0.53523 0.461936 0.461936
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+map_Kd meters rpm speedo  004.jpg
+
+newmtl _temperature
+Ka 0 0 0
+Kd 0.53523 0.461936 0.461936
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+map_Kd meters temp speedo  005.jpg
+
+newmtl background
+Ka 0 0 0
+Kd 0.4 0.3 0.3
+Ks 0.05 0.05 0.05
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl delete.003
+Ka 0 0 0
+Kd 0.8 0.8 0.8
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl leather_seats
+Ka 0 0 0
+Kd 0.336 0.336 0.336
+Ks 0.1 0.1 0.1
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl rearlight
+Ka 0 0 0
+Kd 0.797449 0 0
+Ks 0.3 0.3 0.3
+Ni 1
+Ns 88
+Tf 1 1 1
+d 0.617669
+
+newmtl rubber
+Ka 0 0 0
+Kd 0.109909 0.089545 0.089545
+Ks 0 0 0
+Ni 1
+Ns 76
+Tf 1 1 1
+d 1
+
+newmtl rubber
+Ka 0 0 0
+Kd 0.109909 0.089545 0.089545
+Ks 0 0 0
+Ni 1
+Ns 76
+Tf 1 1 1
+d 1
+
+newmtl test_01
+Ka 0 0 0
+Kd 0 0 0
+Ks 1.34818 1.34818 1.34818
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl test_01
+Ka 0 0 0
+Kd 0 0 0
+Ks 1.34818 1.34818 1.34818
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+
+newmtl turnsignal
+Ka 0 0 0
+Kd 1.0 0.6 0
+Ks 0.3 0.3 0.3
+Ni 1
+Ns 88
+Tf 1 1 1
+d 0.494337
+
+newmtl white_arrow
+Ka 0 0 0
+Kd 0.8 0.8 0.8
+Ks 0.5 0.5 0.5
+Ni 1
+Ns 96
+Tf 1 1 1
+d 1
+

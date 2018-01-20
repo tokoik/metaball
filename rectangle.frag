@@ -1,20 +1,24 @@
 #version 410 core
+#extension GL_ARB_shading_language_420pack : enable
 
 //
 // 矩形の描画
 //
-
-// 光源
-uniform vec4 lamb = vec4(0.1, 0.1, 0.1, 1.0);
-uniform vec4 ldiff = vec4(1.0, 1.0, 1.0, 1.0);
-uniform vec4 lspec = vec4(1.0, 1.0, 1.0, 1.0);
-uniform vec4 lpos = vec4(3.0, 4.0, 5.0, 0.0);
 
 // 材質
 uniform vec4 kamb = vec4(0.2, 0.5, 0.7, 1.0);
 uniform vec4 kdiff = vec4(0.2, 0.5, 0.7, 0.0);
 uniform vec4 kspec = vec4(0.3, 0.3, 0.3, 0.0);
 float kshi = 50.0;
+
+// 光源
+layout (std140, binding = 0) uniform Light
+{
+  vec4 lamb;
+  vec4 ldiff;
+  vec4 lspec;
+  vec4 lpos;
+};
 
 // 法線ベクトルの変換行列
 uniform mat4 mn;

@@ -7,6 +7,9 @@
 // メタボールをバケットソートする場合は 1
 #define SORT 1
 
+// デプスバッファを使う場合は 1
+#define DEPTH 1
+
 // 時間を計測する場合は 1
 #define TIME 1
 
@@ -160,6 +163,11 @@ void GgApplication::run()
   // uniform block の場所を 0 番の結合ポイントに結びつける
   glUniformBlockBinding(rectangleShader, lightlLoc, 0);
 
+#if DEPTH
+  // スクリーン座標系での奥行き値
+  const GLint zClipLoc(glGetUniformLocation(rectangleShader, "zClip"));
+#endif
+
   // 法線変換行列
   const GLint mnLoc(glGetUniformLocation(rectangleShader, "mn"));
 
@@ -223,6 +231,9 @@ void GgApplication::run()
   // 描画する図形
   //
 
+  // 図形描画用のシェーダ
+  GgSimpleShader shader("simple.vert", "simple.frag");
+
   // 図形描画用の光源
   GgSimpleLightBuffer light(lightData);
 
@@ -245,8 +256,10 @@ void GgApplication::run()
   glBlendFunc(GL_ONE, GL_ONE);
   glBlendEquation(GL_FUNC_ADD);
 
+#if !DEPTH
   // デプスバッファは使わない
   glDisable(GL_DEPTH_TEST);
+#endif
 
   // 背景色のアルファ値は 0 にする
   glClearColor(background[0], background[1], background[2], 0.0f);
@@ -263,6 +276,11 @@ void GgApplication::run()
 
   // 投影変換行列
   const GgMatrix mp(ggPerspective(cameraFovy, 1.0f, cameraNear, cameraFar));
+
+  // 図形データ
+  //const GgObj object("AC_1038.obj", shader);
+  //const GgObj object("bunny.obj", shader);
+  const GgObj object("box.obj", shader);
 
   //
   // データの転送
@@ -347,8 +365,13 @@ void GgApplication::run()
     const double time_sort(glfwGetTime() - time_sort_start);
 #endif
 
+#if DEPTH
+    // 標示用のカラーバッファとデプスバッファを消去する
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#else
     // 標示用のカラーバッファを消去する
     glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
     // 各スライスについて
     for (int sliceNum = slices; --sliceNum >= 0;)
@@ -383,6 +406,11 @@ void GgApplication::run()
 
       // メタボールの半径を設定する
       glUniform1f(radiusLoc, sphereRadius);
+
+#if DEPTH
+      // メタボールの描画時にはデプスバッファは使わない
+      glDisable(GL_DEPTH_TEST);
+#endif
 
       // カラーバッファへの加算を有効にする
       glEnable(GL_BLEND);
@@ -419,12 +447,26 @@ void GgApplication::run()
       // 閾値を設定する
       glUniform1f(thresholdLoc, window.getWheel() * 0.1f + 1.0f);
 
+#if DEPTH
+      // スライスのスクリーン座標系の奥行き値を設定する
+      glUniform1f(zClipLoc, zClip);
+
+      // スライスの描画時にはデプスバッファを使う
+      glEnable(GL_DEPTH_TEST);
+#endif
+
       // フレームバッファへの加算を無効にする
       glDisable(GL_BLEND);
 
       // 矩形を描画する
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
+
+#if DEPTH
+    // 図形の描画
+    shader.use(light, mp, mv * window.getRightTrackball());
+    object.draw();
+#endif
 
 #if TIME
     // 全体の処理時間
