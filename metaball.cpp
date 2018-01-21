@@ -8,7 +8,20 @@
 #define SORT 1
 
 // 時間を計測する場合は 1
-#define TIME 0
+#define TIME 1
+
+//
+// 光源
+//
+
+// 光源の材質と位置
+constexpr GgSimpleLight lightData =
+{
+  { 0.1f, 0.1f, 0.1f, 1.0f },
+  { 1.0f, 1.0f, 1.0f, 1.0f },
+  { 1.0f, 1.0f, 1.0f, 1.0f },
+  { 3.0f, 4.0f, 5.0f, 0.0f }
+};
 
 //
 // カメラ
@@ -47,10 +60,17 @@ constexpr int slices(128);
 //
 
 // メタボールの数
-constexpr int sphereCount(10000);
+constexpr int sphereCount(100000);
 
-// メタボールの半径
-constexpr GLfloat sphereRadius(0.2f);
+// メタボールの位置の平均
+constexpr GLfloat sphereMean(0.0f);
+
+// メタボールの位置の標準偏差
+constexpr GLfloat sphereDeviation(0.5f);
+
+//
+// 点群
+//
 
 // 点
 typedef std::array<GLfloat, 3> Point;
@@ -59,7 +79,7 @@ typedef std::array<GLfloat, 3> Point;
 typedef std::vector<Point> Points;
 
 // 点群の生成
-static void generatePoints(Points &points, int count)
+static void generatePoints(Points &points, int count, GLfloat mean, GLfloat deviation)
 {
   // ハードウェア乱数で種を作る
   std::random_device seed;
@@ -73,8 +93,8 @@ static void generatePoints(Points &points, int count)
   std::uniform_real_distribution<GLfloat> uniform(0.0f, 2.0f);
 
   // 正規分布
-  // 平均 0、標準偏差 0.25 で分布させる
-  std::normal_distribution<GLfloat> normal(0.0f, 0.25f);
+  // 平均 0、標準偏差 1 で分布させる
+  std::normal_distribution<GLfloat> normal(mean, deviation);
 
   // 原点中心に直径方向に正規分布する点群を発生する
   while (--count >= 0)
@@ -110,6 +130,11 @@ void GgApplication::run()
   // フレームバッファオブジェクト
   //
 
+  // フレームバッファオブジェクトを作成する
+  GLuint fbo;
+  glGenFramebuffers(1, &fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
   // カラーバッファに使うテクスチャ
   GLuint cb;
   glGenTextures(1, &cb);
@@ -120,17 +145,22 @@ void GgApplication::run()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  // フレームバッファオブジェクト
-  GLuint fbo;
-  glGenFramebuffers(1, &fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  // テクスチャをフレームバッファオブジェクトに組み込む
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cb, 0);
+
+  // フレームバッファを標準に戻す
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // 矩形を描くシェーダ
   const GLuint rectangleShader(ggLoadShader("rectangle.vert", "rectangle.frag"));
 
-  // 法線変換病列
+  // uniform block の場所を取得する
+  const GLint lightlLoc(glGetUniformBlockIndex(rectangleShader, "Light"));
+
+  // uniform block の場所を 0 番の結合ポイントに結びつける
+  glUniformBlockBinding(rectangleShader, lightlLoc, 0);
+
+  // 法線変換行列
   const GLint mnLoc(glGetUniformLocation(rectangleShader, "mn"));
 
   // テクスチャ
@@ -145,7 +175,7 @@ void GgApplication::run()
 
   // 点群を生成する
   Points points;
-  generatePoints(points, sphereCount);
+  generatePoints(points, sphereCount, sphereMean, sphereDeviation);
 
   // 点群の頂点配列オブジェクト
   GLuint vao;
@@ -166,7 +196,13 @@ void GgApplication::run()
   glGenBuffers(1, &ibo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, points.size() * sizeof(GLuint), NULL, GL_STREAM_DRAW);
+
+  // バケット
+  std::vector<GLuint> bucket[slices];
 #endif
+
+  // 頂点配列オブジェクトを標準に戻す
+  glBindVertexArray(0);
 
   // 点を描くシェーダ
   const GgPointShader pointShader("point.vert", "point.frag");
@@ -182,6 +218,13 @@ void GgApplication::run()
 
   // 点のサイズはシェーダから変更する
   glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+  //
+  // 描画する図形
+  //
+
+  // 図形描画用の光源
+  GgSimpleLightBuffer light(lightData);
 
   //
   // OpenGL の設定
@@ -204,13 +247,13 @@ void GgApplication::run()
 
   // デプスバッファは使わない
   glDisable(GL_DEPTH_TEST);
-  glDepthMask(GL_FALSE);
 
   // 背景色のアルファ値は 0 にする
   glClearColor(background[0], background[1], background[2], 0.0f);
 
-  // フレームバッファオブジェクトの初期値
-  constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
+  //
+  // 描画の設定
+  //
 
   // ビュー変換行列
   const GgMatrix mv(ggLookat(cameraPosition, cameraTarget, cameraUp));
@@ -221,8 +264,17 @@ void GgApplication::run()
   // 投影変換行列
   const GgMatrix mp(ggPerspective(cameraFovy, 1.0f, cameraNear, cameraFar));
 
-  // バケット
-  std::vector<GLuint> bucket[slices];
+  //
+  // データの転送
+  //
+
+  // メタボールの中心の位置の位置のデータを送信する
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, points.size() * sizeof(Point), points.data());
+
+  //
+  // 描画
+  //
 
 #if TIME
   unsigned int frame(0);
@@ -240,13 +292,13 @@ void GgApplication::run()
     // モデルビュー変換行列
     const GgMatrix mw(mv * window.getLeftTrackball());
 
-    //
-    // データの転送
-    //
+    // メタボールの半径
+    const GLfloat sphereRadius(window.getWheel(0) * 0.01f + 0.2f);
 
-    // メタボールの中心の位置の位置のデータを送信する
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, points.size() * sizeof(Point), points.data());
+#if TIME
+    // 前処理（バケットソート）の処理時間
+    const double time_sort_start(glfwGetTime());
+#endif
 
 #if SORT
     //
@@ -292,10 +344,10 @@ void GgApplication::run()
 
 #if TIME
     // 前処理（バケットソート）の処理時間
-    const double time_sort(glfwGetTime());
+    const double time_sort(glfwGetTime() - time_sort_start);
 #endif
 
-    // 表示ウィンドウを消去する
+    // 標示用のカラーバッファを消去する
     glClear(GL_COLOR_BUFFER_BIT);
 
     // 各スライスについて
@@ -311,8 +363,11 @@ void GgApplication::run()
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
       glViewport(0, 0, fboWidth, fboHeight);
 
-      // フレームバッファへの加算を有効にする
-      glEnable(GL_BLEND);
+      // カラーバッファの初期値
+      constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
+
+      // カラーバッファを消去する
+      glClearBufferfv(GL_COLOR, 0, zero);
 
       // メタボールを描くシェーダを指定する
       pointShader.use();
@@ -329,14 +384,14 @@ void GgApplication::run()
       // メタボールの半径を設定する
       glUniform1f(radiusLoc, sphereRadius);
 
-      // フレームバッファを消去する
-      glClearBufferfv(GL_COLOR, 0, zero);
+      // カラーバッファへの加算を有効にする
+      glEnable(GL_BLEND);
 
       // 描画
       glBindVertexArray(vao);
 #if SORT
       // バケットソートするときはインデックスを使って描画する
-      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[sliceNum].size() * sizeof (GLuint), bucket[sliceNum].data());
+      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bucket[sliceNum].size() * sizeof(GLuint), bucket[sliceNum].data());
       glDrawElements(GL_POINTS, static_cast<GLsizei>(bucket[sliceNum].size()), GL_UNSIGNED_INT, NULL);
 #else
       // バケットソートしない場合は直接描画する
@@ -347,11 +402,11 @@ void GgApplication::run()
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
       glViewport(0, 0, window.getWidth(), window.getHeight());
 
-      // フレームバッファへの加算を無効にする
-      glDisable(GL_BLEND);
-
       // 矩形を描くシェーダを選択する
       glUseProgram(rectangleShader);
+
+      // 光源のデータを設定する
+      glBindBufferBase(GL_UNIFORM_BUFFER, 0, light.getBuffer());
 
       // テクスチャを割り当てる
       glBindTexture(GL_TEXTURE_2D, cb);
@@ -364,6 +419,9 @@ void GgApplication::run()
       // 閾値を設定する
       glUniform1f(thresholdLoc, window.getWheel() * 0.1f + 1.0f);
 
+      // フレームバッファへの加算を無効にする
+      glDisable(GL_BLEND);
+
       // 矩形を描画する
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
@@ -371,14 +429,25 @@ void GgApplication::run()
 #if TIME
     // 全体の処理時間
     glFinish();
-    const double time_total(glfwGetTime() - time_sort);
-    accum_sort += time_sort;
+    const double time_total(glfwGetTime());
     accum_total += time_total;
+    accum_sort += time_sort;
     ++frame;
-    std::cerr << "sort:" << time_sort << " (" << accum_sort / frame << "), draw:" << time_total << " (" << accum_total / frame << ")\n";
+    std::cerr << time_sort << " (" << accum_sort / frame << "), "
+      << time_total - time_sort << " (" << (accum_total - accum_sort) / frame << "), "
+      << time_total << " (" << accum_total / frame << ")\n";
 #endif
 
     // カラーバッファを入れ替えてイベントを取り出す
     window.swapBuffers();
   }
+
+  // 作成したオブジェクトを削除する
+  glDeleteFramebuffers(1, &fbo);
+  glDeleteTextures(1, &cb);
+  glDeleteVertexArrays(1, &vao);
+  glDeleteBuffers(1, &vbo);
+#if SORT
+  glDeleteBuffers(1, &ibo);
+#endif
 }

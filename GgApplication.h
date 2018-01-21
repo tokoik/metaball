@@ -133,7 +133,7 @@ struct GgApplication
     double mouse_x, mouse_y;
 
     // マウスホイールの回転量
-    double wheel_rotation[4];
+    double wheel_rotation[2];
 
     // 左ドラッグによるトラックボール
     GgTrackball trackball_left;
@@ -309,11 +309,8 @@ struct GgApplication
       glfwSetFramebufferSizeCallback(window, resize);
 
       // 矢印キー・マウス・ジョイスティック操作の初期値を設定する
-      for (int i = 0; i < 4; ++i)
-      {
-        arrow[i][0] = arrow[i][1] = 0;
-        wheel_rotation[i] = 0.0;
-      }
+      for (int i = 0; i < 4; ++i) arrow[i][0] = arrow[i][1] = 0;
+      wheel_rotation[0] = wheel_rotation[1] = 0.0;
 
 #if defined(USE_OCULUS_RIFT)
       // Oculus Rift の情報を取り出す
@@ -893,11 +890,8 @@ struct GgApplication
           {
           case GLFW_KEY_R:
             // 矢印キーの設定値とマウスホイールの回転量をリセットする
-            for (int i = 0; i < 4; ++i)
-            {
-              instance->arrow[i][0] = instance->arrow[i][1] = 0;
-              instance->wheel_rotation[i] = 0.0;
-            }
+            for (int i = 0; i < 4; ++i) instance->arrow[i][0] = instance->arrow[i][1] = 0;
+            instance->wheel_rotation[0] = instance->wheel_rotation[1] = 0.0;
 
           case GLFW_KEY_O:
             // トラックボールをリセットする
@@ -1024,14 +1018,8 @@ struct GgApplication
 
       if (instance)
       {
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT))
-          instance->wheel_rotation[1] += y;
-        else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL))
-          instance->wheel_rotation[2] += y;
-        else if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) || glfwGetKey(window, GLFW_KEY_RIGHT_ALT))
-          instance->wheel_rotation[3] += y;
-        else
-          instance->wheel_rotation[0] += y;
+        instance->wheel_rotation[0] += x;
+        instance->wheel_rotation[1] += y;
       }
     }
 
@@ -1206,34 +1194,9 @@ struct GgApplication
     //
     // マウスホイールの現在の回転角を得る
     //
-    GLfloat getWheel(int mods = 0) const
+    GLfloat getWheel(int direction = 1) const
     {
-      if (mods < 0 || mods > 3) throw std::out_of_range("No such modifier key.");
-      return static_cast<GLfloat>(wheel_rotation[mods]);
-    }
-
-    //
-    // Shift キーを押しながらマウスホイールの現在の回転角を得る
-    //
-    GLfloat getShiftWheel() const
-    {
-      return getWheel(1);
-    }
-
-    //
-    // Control キーを押しながらマウスホイールの現在の回転角を得る
-    //
-    GLfloat getControlWheel() const
-    {
-      return getWheel(2);
-    }
-
-    //
-    // Alt キーを押しながらマウスホイールの現在の回転角を得る
-    //
-    GLfloat getAltWheel() const
-    {
-      return getWheel(3);
+      return static_cast<GLfloat>(wheel_rotation[direction & 1]);
     }
 
     //
