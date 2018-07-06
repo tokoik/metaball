@@ -15,22 +15,14 @@ layout (location = 0) out vec4 fc;
 void main()
 {
 	// このフラグメントのメタボールの断面上の位置
-	vec3 p = vec3(gl_PointCoord * vec2(2.0, -2.0) - vec2(1.0, -1.0), d);
+	vec3 q = vec3(gl_PointCoord * vec2(2.0, -2.0) - vec2(1.0, -1.0), d);
 
 	// そのメタボールの中心からの距離
-	float r = length(p);
+	float r = length(q);
 
-#if 0
-	// メタボールとスライスが交差していなければフラグメントを捨てる
-	if (all(bvec2(r == 0.0, r > 1.0))) discard;
-
-	// ベクトルとポテンシャル
-	fc = vec4(p / r, smoothstep(1.0, 0.0, r));
-#else
 	// メタボールとスライスが交差していなければフラグメントを捨てる
 	if (r > 1.0) discard;
 
-	// ベクトルとポテンシャル
-	fc = vec4(p, smoothstep(1.0, 0.0, r));
-#endif
+	// 勾配と濃度
+	fc = vec4((1.0 - r) * 6.0 * q, smoothstep(1.0, 0.0, r));
 }

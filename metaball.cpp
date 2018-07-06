@@ -8,10 +8,36 @@
 #define SORT 1
 
 // デプスバッファを使う場合は 1
-#define DEPTH 1
+#define DEPTH 0
 
 // 時間を計測する場合は 1
 #define TIME 1
+
+// glFinish() を実行する場合は 1
+#define USE_GLFINISH 0
+
+//
+// フレームバッファオブジェクト
+//
+
+// FBO のサイズ
+constexpr GLsizei fboWidth(128), fboHeight(128);
+
+// スライスの数
+constexpr int slices(128);
+
+//
+// メタボール
+//
+
+// メタボールの数
+constexpr int sphereCount(100000);
+
+// メタボールの位置の平均
+constexpr GLfloat sphereMean(0.0f);
+
+// メタボールの位置の標準偏差
+constexpr GLfloat sphereDeviation(0.5f);
 
 //
 // 光源
@@ -47,29 +73,6 @@ constexpr GLfloat cameraNear(3.0f), cameraFar(7.0f);
 
 // 背景色
 constexpr GLfloat background[] = { 1.0f, 1.0f, 0.9f };
-
-//
-// フレームバッファオブジェクト
-//
-
-// FBO のサイズ
-constexpr GLsizei fboWidth(128), fboHeight(128);
-
-// スライスの数
-constexpr int slices(128);
-
-//
-// メタボール
-//
-
-// メタボールの数
-constexpr int sphereCount(100000);
-
-// メタボールの位置の平均
-constexpr GLfloat sphereMean(0.0f);
-
-// メタボールの位置の標準偏差
-constexpr GLfloat sphereDeviation(0.5f);
 
 //
 // 点群
@@ -334,24 +337,18 @@ void GgApplication::run()
       const GLfloat zw(mw.get(2) * points[pointNum][0] + mw.get(6) * points[pointNum][1]
         + mw.get(10) * points[pointNum][2] + mw.get(14));
 
-      // メタボールの前端の視点座標系の z 値
-      const GLfloat zwf(zw + sphereRadius);
-
       // メタボールの前端のスクリーン座標系における z 値
-      const GLfloat zsf((mp.get(10) * zwf + mp.get(14)) / (mp.get(11) * zwf));
+      const GLfloat zsf(mp.get(10) + mp.get(14) / (zw + sphereRadius));
 
-      // メタボールの前端の位置におけるバケット番号
-      int bucketFront(static_cast<int>(ceil((zsf * 0.5f + 0.5f) * slices - 0.5f)));
+      // zsf の符号を反転してメタボールの前端の位置におけるバケット番号を求める
+      int bucketFront(static_cast<int>(ceil((0.5f - zsf * 0.5f) * slices - 0.5f)));
       if (bucketFront < 0) bucketFront = 0;
 
-      // メタボールの後端の視点座標系の z 値
-      const GLfloat zwr(zw - sphereRadius);
-
       // メタボールの後端のスクリーン座標系における z 値
-      const GLfloat zsr((mp.get(10) * zwr + mp.get(14)) / (mp.get(11) * zwr));
+      const GLfloat zsr(mp.get(10) + mp.get(14) / (zw - sphereRadius));
 
-      // メタボールの後端の位置におけるバケット番号
-      int bucketBack(static_cast<int>(floor((zsr * 0.5f + 0.5f) * slices - 0.5f)));
+      // zsr の符号を反転してメタボールの後端の位置におけるバケット番号を求める
+      int bucketBack(static_cast<int>(floor((0.5f - zsr * 0.5f) * slices - 0.5f)));
       if (bucketBack >= slices) bucketBack = slices - 1;
 
       // バケットソート
@@ -468,20 +465,22 @@ void GgApplication::run()
     object.draw();
 #endif
 
+    // カラーバッファを入れ替えてイベントを取り出す
+    window.swapBuffers();
+
 #if TIME
     // 全体の処理時間
-    glFinish();
+#  if USE_GLFINISH
+    //glFinish();
+#  endif
     const double time_total(glfwGetTime());
     accum_total += time_total;
     accum_sort += time_sort;
     ++frame;
-    std::cerr << time_sort << " (" << accum_sort / frame << "), "
+    std::cerr << frame << ": " << time_sort << " (" << accum_sort / frame << "), "
       << time_total - time_sort << " (" << (accum_total - accum_sort) / frame << "), "
       << time_total << " (" << accum_total / frame << ")\n";
 #endif
-
-    // カラーバッファを入れ替えてイベントを取り出す
-    window.swapBuffers();
   }
 
   // 作成したオブジェクトを削除する

@@ -32,12 +32,12 @@ void main()
   // メタボールの中心の視点座標系の位置を求める
   vec4 p = mv * pv;
 
-	// メタボールの中心とスライスとの距離のメタボールの半径に対する割合を求める
-	d = (zSlice - p.z) / radius;
-
   // メタボールの中心ののスクリーン座標値を求める
   gl_Position = mp * p;
 
+	// メタボールの中心とスライスとの距離のメタボールの半径に対する割合を求める
+	d = (zSlice - p.z) / radius;
+
 	// メタボールの断面の大きさ（メタボールが必ずスライスと交差するなら 1.0 - d * d は負にならない）
-	gl_PointSize = size.y * radius * sqrt(1.0 - d * d) * mp[1][1] / gl_Position.w;
+	gl_PointSize = -size.y * 2.0 * radius * sqrt(1.0 - d * d) * mp[1][1] / zSlice;
 }
