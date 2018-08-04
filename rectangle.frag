@@ -24,7 +24,7 @@ layout (std140, binding = 0) uniform Light
 uniform mat4 mn;
 
 // テクスチャ
-uniform sampler2D image;
+uniform sampler2D image[2];
 
 // 閾値
 uniform float threshold;
@@ -37,16 +37,27 @@ layout (location = 0) out vec4 fc;
 
 void main()
 {
-  // テクスチャをサンプリングする
-	vec4 c = texture(image, texcoord);
+  // 現在のスライスのテクスチャをサンプリングする
+	vec4 c = texture(image[0], texcoord);
 
 	// ポテンシャルが閾値未満ならフラグメントを捨てる
-	if (c.w < threshold) discard;
+  float w1 = c.w - threshold;
+	if (w1 <= 0.0) discard;
+
+  // ひとつ前のスライスのテクスチャをサンプリングする
+	vec4 d = texture(image[1], texcoord);
+
+  // ひとつ前のスライスのポテンシャルの方が大きければフラグメントを捨てる
+  float w2 = c.w - d.w;
+  if (w2 <= 0.0) discard;
+
+  // ポテンシャルが閾値と一致する位置
+  float t = w1 / w2;
 
   // 陰影付け
 	vec3 v = -vec3(0.0, 0.0, 1.0);
-	vec3 l = normalize(lpos.xyz);
-	vec3 n = normalize(mat3(mn) * c.xyz);
+	vec3 l = normalize(vec3(lpos));
+	vec3 n = normalize(mat3(mn) * mix(vec3(c), vec3(d), t));
 	vec3 h = normalize(l - v);
   vec4 idiff = max(dot(n, l), 0.0) * kdiff * ldiff + kamb * lamb;
   vec4 ispec = pow(max(dot(n, h), 0.0), kshi) * kspec * lspec;

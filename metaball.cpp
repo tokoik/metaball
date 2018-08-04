@@ -8,7 +8,7 @@
 #define SORT 1
 
 // デプスバッファを使う場合は 1
-#define DEPTH 0
+#define DEPTH 1
 
 // 時間を計測する場合は 1
 #define TIME 1
@@ -17,14 +17,14 @@
 #define USE_GLFINISH 0
 
 //
-// フレームバッファオブジェクト
+// スライス
 //
 
-// FBO のサイズ
-constexpr GLsizei fboWidth(128), fboHeight(128);
-
 // スライスの数
-constexpr int slices(128);
+constexpr int sliceCount(128);
+
+// スライス用の FBO のサイズ
+constexpr GLsizei sliceWidth(128), sliceHeight(128);
 
 //
 // メタボール
@@ -44,7 +44,7 @@ constexpr GLfloat sphereDeviation(0.5f);
 //
 
 // 光源の材質と位置
-constexpr GgSimpleLight lightData =
+constexpr GgSimpleShader::Light lightData =
 {
   { 0.1f, 0.1f, 0.1f, 1.0f },
   { 1.0f, 1.0f, 1.0f, 1.0f },
@@ -133,52 +133,41 @@ void GgApplication::run()
   Window window("metaball", 512, 512);
 
   //
-  // フレームバッファオブジェクト
+  // スライス用のフレームバッファオブジェクト
   //
 
-  // フレームバッファオブジェクトを作成する
-  GLuint fbo;
-  glGenFramebuffers(1, &fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  // フレームバッファオブジェクト
+  GLuint sliceFbo[2];
+  glGenFramebuffers(2, sliceFbo);
 
-  // カラーバッファに使うテクスチャ
-  GLuint cb;
-  glGenTextures(1, &cb);
-  glBindTexture(GL_TEXTURE_2D, cb);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, fboWidth, fboHeight, 0, GL_RGBA, GL_FLOAT, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  // レンダーターゲットに使うテクスチャ
+  GLuint sliceColor[2];
+  glGenTextures(2, sliceColor);
 
-  // テクスチャをフレームバッファオブジェクトに組み込む
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cb, 0);
+  // レンダーターゲットの初期値
+  static constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
 
-  // フレームバッファを標準に戻す
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  // レンダーターゲット
+  static constexpr GLenum sliceBufs[] = { GL_COLOR_ATTACHMENT0 };
 
-  // 矩形を描くシェーダ
-  const GLuint rectangleShader(ggLoadShader("rectangle.vert", "rectangle.frag"));
+  for (int i = 0; i < 2; ++i)
+  {
+    // レンダーターゲットのテクスチャを準備する
+    glBindTexture(GL_TEXTURE_2D, sliceColor[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sliceWidth, sliceHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  // uniform block の場所を取得する
-  const GLint lightlLoc(glGetUniformBlockIndex(rectangleShader, "Light"));
+    // フレームバッファオブジェクトに組み込む
+    glBindFramebuffer(GL_FRAMEBUFFER, sliceFbo[i]);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, sliceColor[i], 0);
 
-  // uniform block の場所を 0 番の結合ポイントに結びつける
-  glUniformBlockBinding(rectangleShader, lightlLoc, 0);
-
-#if DEPTH
-  // スクリーン座標系での奥行き値
-  const GLint zClipLoc(glGetUniformLocation(rectangleShader, "zClip"));
-#endif
-
-  // 法線変換行列
-  const GLint mnLoc(glGetUniformLocation(rectangleShader, "mn"));
-
-  // テクスチャ
-  const GLint imageLoc(glGetUniformLocation(rectangleShader, "image"));
-
-  // 閾値
-  const GLint thresholdLoc(glGetUniformLocation(rectangleShader, "threshold"));
+    // カラーバッファを消去する
+    glDrawBuffers(1, sliceBufs);
+    glClearBufferfv(GL_COLOR, 0, zero);
+  }
 
   //
   // 点群
@@ -209,7 +198,7 @@ void GgApplication::run()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, points.size() * sizeof(GLuint), NULL, GL_STREAM_DRAW);
 
   // バケット
-  std::vector<GLuint> bucket[slices];
+  std::vector<GLuint> bucket[sliceCount];
 #endif
 
   // 頂点配列オブジェクトを標準に戻す
@@ -231,14 +220,41 @@ void GgApplication::run()
   glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
   //
-  // 描画する図形
+  // 等値面表示
+  //
+
+  // 矩形を描くシェーダ
+  const GLuint rectangleShader(ggLoadShader("rectangle.vert", "rectangle.frag"));
+
+  // uniform block の場所を取得する
+  const GLint lightlLoc(glGetUniformBlockIndex(rectangleShader, "Light"));
+
+  // uniform block の場所を 0 番の結合ポイントに結びつける
+  glUniformBlockBinding(rectangleShader, lightlLoc, 0);
+
+#if DEPTH
+  // スクリーン座標系での奥行き値
+  const GLint zClipLoc(glGetUniformLocation(rectangleShader, "zClip"));
+#endif
+
+  // 法線変換行列
+  const GLint mnLoc(glGetUniformLocation(rectangleShader, "mn"));
+
+  // テクスチャ
+  const GLint imageLoc(glGetUniformLocation(rectangleShader, "image"));
+
+  // 閾値
+  const GLint thresholdLoc(glGetUniformLocation(rectangleShader, "threshold"));
+
+  //
+  // 合成する図形
   //
 
   // 図形描画用のシェーダ
   GgSimpleShader shader("simple.vert", "simple.frag");
 
   // 図形描画用の光源
-  GgSimpleLightBuffer light(lightData);
+  GgSimpleShader::LightBuffer light(lightData);
 
   //
   // OpenGL の設定
@@ -281,9 +297,9 @@ void GgApplication::run()
   const GgMatrix mp(ggPerspective(cameraFovy, 1.0f, cameraNear, cameraFar));
 
   // 図形データ
-  //const GgObj object("AC_1038.obj", shader);
-  //const GgObj object("bunny.obj", shader);
-  const GgObj object("box.obj", shader);
+  //const GgSimpleObj object("AC_1038.obj", shader);
+  const GgSimpleObj object("bunny.obj", shader, true);
+  //const GgSimpleObj object("box.obj", shader);
 
   //
   // データの転送
@@ -311,7 +327,7 @@ void GgApplication::run()
 #endif
 
     // モデルビュー変換行列
-    const GgMatrix mw(mv * window.getLeftTrackball());
+    const GgMatrix mw(mv * window.getTrackball(0));
 
     // メタボールの半径
     const GLfloat sphereRadius(window.getWheel(0) * 0.01f + 0.2f);
@@ -327,7 +343,7 @@ void GgApplication::run()
     //
 
     // バケットのクリア
-    for (int bucketNum = 0; bucketNum < slices; ++bucketNum)
+    for (int bucketNum = 0; bucketNum < sliceCount; ++bucketNum)
       bucket[bucketNum].clear();
 
     // すべてのメタボールの中心について
@@ -341,15 +357,15 @@ void GgApplication::run()
       const GLfloat zsf(mp.get(10) + mp.get(14) / (zw + sphereRadius));
 
       // zsf の符号を反転してメタボールの前端の位置におけるバケット番号を求める
-      int bucketFront(static_cast<int>(ceil((0.5f - zsf * 0.5f) * slices - 0.5f)));
+      int bucketFront(static_cast<int>(ceil((0.5f - zsf * 0.5f) * sliceCount - 0.5f)));
       if (bucketFront < 0) bucketFront = 0;
 
       // メタボールの後端のスクリーン座標系における z 値
       const GLfloat zsr(mp.get(10) + mp.get(14) / (zw - sphereRadius));
 
       // zsr の符号を反転してメタボールの後端の位置におけるバケット番号を求める
-      int bucketBack(static_cast<int>(floor((0.5f - zsr * 0.5f) * slices - 0.5f)));
-      if (bucketBack >= slices) bucketBack = slices - 1;
+      int bucketBack(static_cast<int>(floor((0.5f - zsr * 0.5f) * sliceCount - 0.5f)));
+      if (bucketBack >= sliceCount) bucketBack = sliceCount - 1;
 
       // バケットソート
       for (int bucketNum = bucketFront; bucketNum <= bucketBack; ++bucketNum)
@@ -370,30 +386,37 @@ void GgApplication::run()
     glClear(GL_COLOR_BUFFER_BIT);
 #endif
 
+    // テクスチャを割り当てる
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sliceColor[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, sliceColor[1]);
+
+    // 描画するスライス
+    int f(0);
+
     // 各スライスについて
-    for (int sliceNum = slices; --sliceNum >= 0;)
+    for (int sliceNum = 0; sliceNum < sliceCount; ++sliceNum)
     {
       // スクリーン座標系におけるスライスの位置
-      const GLfloat zClip(static_cast<GLfloat>(sliceNum * 2 + 1) / static_cast<GLfloat>(slices) - 1.0f);
+      const GLfloat zClip(static_cast<GLfloat>(sliceNum * 2 + 1) / static_cast<GLfloat>(sliceCount) - 1.0f);
 
       // 視点座標系のスライスの位置
       const GLfloat zSlice(mp.get(14) / (zClip * mp.get(11) - mp.get(10)));
 
       // FBO に描く
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      glViewport(0, 0, fboWidth, fboHeight);
-
-      // カラーバッファの初期値
-      constexpr GLfloat zero[] = { 0.0f, 0.0f, 0.f, 0.0f };
-
-      // カラーバッファを消去する
+      glBindFramebuffer(GL_FRAMEBUFFER, sliceFbo[f]);
+      glDrawBuffers(1, sliceBufs);
       glClearBufferfv(GL_COLOR, 0, zero);
+
+      // ビューポートをスライス用の FBO のサイズに設定する
+      glViewport(0, 0, sliceWidth, sliceHeight);
 
       // メタボールを描くシェーダを指定する
       pointShader.use();
 
       // フレームバッファのサイズを設定する
-      glUniform2f(sizeLoc, static_cast<GLfloat>(fboWidth), static_cast<GLfloat>(fboHeight));
+      glUniform2f(sizeLoc, static_cast<GLfloat>(sliceWidth), static_cast<GLfloat>(sliceHeight));
 
       // 変換行列を設定する
       pointShader.loadMatrix(mp, mw);
@@ -433,16 +456,15 @@ void GgApplication::run()
       // 光源のデータを設定する
       glBindBufferBase(GL_UNIFORM_BUFFER, 0, light.getBuffer());
 
-      // テクスチャを割り当てる
-      glBindTexture(GL_TEXTURE_2D, cb);
-      glActiveTexture(GL_TEXTURE0);
-      glUniform1i(imageLoc, 0);
+      // テクスチャユニットを指定する
+      const GLint image[] = { f, 1 - f };
+      glUniform1iv(imageLoc, 2, image);
 
       // 法線変換行列を設定する
       glUniformMatrix4fv(mnLoc, 1, GL_FALSE, mn.get());
 
       // 閾値を設定する
-      glUniform1f(thresholdLoc, window.getWheel() * 0.1f + 1.0f);
+      glUniform1f(thresholdLoc, window.getWheelY() * 0.1f + 1.0f);
 
 #if DEPTH
       // スライスのスクリーン座標系の奥行き値を設定する
@@ -457,12 +479,15 @@ void GgApplication::run()
 
       // 矩形を描画する
       glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+      // 描画するスライスを入れ替える
+      f = 1 - f;
     }
 
 #if DEPTH
     // 図形の描画
-    shader.use(light, mp, mv * window.getRightTrackball());
-    object.draw();
+    shader.use(light, mp, mv * window.getTrackball(1));
+    //object.draw();
 #endif
 
     // カラーバッファを入れ替えてイベントを取り出す
@@ -471,12 +496,12 @@ void GgApplication::run()
 #if TIME
     // 全体の処理時間
 #  if USE_GLFINISH
-    //glFinish();
+    glFinish();
 #  endif
     const double time_total(glfwGetTime());
     accum_total += time_total;
     accum_sort += time_sort;
-    ++frame;
+    if (++frame % 1000 == 0)
     std::cerr << frame << ": " << time_sort << " (" << accum_sort / frame << "), "
       << time_total - time_sort << " (" << (accum_total - accum_sort) / frame << "), "
       << time_total << " (" << accum_total / frame << ")\n";
@@ -484,8 +509,8 @@ void GgApplication::run()
   }
 
   // 作成したオブジェクトを削除する
-  glDeleteFramebuffers(1, &fbo);
-  glDeleteTextures(1, &cb);
+  glDeleteFramebuffers(2, sliceFbo);
+  glDeleteTextures(2, sliceColor);
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &vbo);
 #if SORT
