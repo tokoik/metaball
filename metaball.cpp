@@ -297,8 +297,8 @@ void GgApplication::run()
   const GgMatrix mp(ggPerspective(cameraFovy, 1.0f, cameraNear, cameraFar));
 
   // 図形データ
-  //const GgSimpleObj object("AC_1038.obj", shader);
-  const GgSimpleObj object("bunny.obj", shader, true);
+  const GgSimpleObj object("AC_1038.obj", shader);
+  //const GgSimpleObj object("bunny.obj", shader, true);
   //const GgSimpleObj object("box.obj", shader);
 
   //
@@ -487,7 +487,7 @@ void GgApplication::run()
 #if DEPTH
     // 図形の描画
     shader.use(light, mp, mv * window.getTrackball(1));
-    //object.draw();
+    object.draw();
 #endif
 
     // カラーバッファを入れ替えてイベントを取り出す

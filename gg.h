@@ -1348,7 +1348,7 @@ namespace gg
   **   \param depth 1画素のバイト数.
   **   \return 保存に成功すれば true, 失敗すれば false.
   */
-  extern void ggSaveTga(const char *name, const void *buffer,
+  extern bool ggSaveTga(const char *name, const void *buffer,
     unsigned int width, unsigned int height, unsigned int depth);
 
   /*!
@@ -1357,7 +1357,7 @@ namespace gg
   **   \param name 保存するファイル名.
   **   \return 保存に成功すれば true, 失敗すれば false.
   */
-  extern void ggSaveColor(const char *name);
+  extern bool ggSaveColor(const char *name);
 
   /*!
   ** \brief デプスバッファの内容を TGA ファイルに保存する.
@@ -1365,7 +1365,7 @@ namespace gg
   **   \param name 保存するファイル名.
   **   \return 保存に成功すれば true, 失敗すれば false.
   */
-  extern void ggSaveDepth(const char *name);
+  extern bool ggSaveDepth(const char *name);
 
   /*!
   ** \brief TGA ファイル (8/16/24/32bit) をメモリに読み込む.
@@ -1375,8 +1375,9 @@ namespace gg
   **   \param pWidth 読み込んだ画像の横の画素数の格納先のポインタ. nullptr なら格納しない.
   **   \param pHeight 読み込んだ画像の縦の画素数の格納先のポインタ. nullptr なら格納しない.
   **   \param pFormat 読み込んだファイルの書式 (GL_RED, G_RG, GL_BGR, G_BGRA) の格納先のポインタ. nullptr なら格納しない.
+  **   \return 読み込みに成功すれば true, 失敗すれば false.
   */
-  extern void ggReadImage(const char *name, std::vector<GLubyte> &image, GLsizei *pWidth, GLsizei *pHeight, GLenum *pFormat);
+  extern bool ggReadImage(const char *name, std::vector<GLubyte> &image, GLsizei *pWidth, GLsizei *pHeight, GLenum *pFormat);
 
   /*!
   ** \brief テクスチャメモリを確保して画像データをテクスチャとして読み込む.
